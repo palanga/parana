@@ -4,7 +4,9 @@ version := "0.0.0"
 val mainScala = "2.13.4"
 val allScala  = Seq(mainScala)
 
-val zioVersion = "1.0.3"
+val zioVersion          = "1.0.3"
+val calibanVersion      = "0.9.4"
+val zioCassandraVersion = "0.0.0+9-67330416+20201207-2133"
 
 inThisBuild(
   List(
@@ -38,8 +40,7 @@ addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck")
 
 lazy val root =
-  project
-    .in(file("."))
+  (project in file("."))
     .settings(skip in publish := true)
     .settings(historyPath := None)
     .aggregate(
@@ -48,8 +49,7 @@ lazy val root =
     )
 
 lazy val core =
-  project
-    .in(file("core"))
+  (project in file("core"))
     .settings(name := "zio-event-sourcing")
     .settings(commonSettings)
     .settings(
@@ -59,7 +59,6 @@ lazy val core =
         "dev.zio" %% "zio-streams"  % zioVersion,
         "dev.zio" %% "zio-test"     % zioVersion % "test",
         "dev.zio" %% "zio-test-sbt" % zioVersion % "test",
-        compilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
       ),
     )
     .settings(
@@ -68,24 +67,31 @@ lazy val core =
     )
 
 lazy val examples =
-  project
-    .in(file("examples"))
+  (project in file("examples"))
     .settings(name := "zio-event-sourcing-examples")
     .settings(commonSettings)
     .settings(
-      libraryDependencies ++= Seq(compilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"))
+      libraryDependencies ++= Seq(
+        "dev.palanga"           %% "zio-cassandra"   % zioCassandraVersion,
+        "com.github.ghostdogpr" %% "caliban"         % calibanVersion,
+        "com.github.ghostdogpr" %% "caliban-http4s"  % calibanVersion,
+        "ch.qos.logback"         % "logback-classic" % "1.2.3",
+      )
     )
     .settings(
       fork in Test := true,
       fork in run := true,
       skip in publish := true,
     )
-    .dependsOn(core)
+    .dependsOn(
+      core
+    )
 
 val commonSettings =
   Def.settings(
     scalaVersion := mainScala,
     crossScalaVersions := allScala,
+    libraryDependencies += compilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
     scalacOptions ++= Seq(
       "-deprecation",
       "-encoding",
@@ -101,6 +107,7 @@ val commonSettings =
       "-Ywarn-numeric-widen",
       "-Ywarn-unused:patvars,-implicits",
       "-Ywarn-value-discard",
+//      "-Ymacro-annotations",
     ) ++ (CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((2, 12)) =>
         Seq(
@@ -118,5 +125,5 @@ val commonSettings =
         )
       case _             => Nil
     }),
-    scalacOptions in Test --= Seq("-Xfatal-warnings"),
+//    scalacOptions in Test --= Seq("-Xfatal-warnings"),
   )
