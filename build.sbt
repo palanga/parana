@@ -42,6 +42,7 @@ lazy val root =
     .settings(historyPath := None)
     .aggregate(
       core,
+      server,
       examples,
     )
 
@@ -57,6 +58,23 @@ lazy val core =
         "dev.zio" %% "zio-streams"  % zioVersion,
         "dev.zio" %% "zio-test"     % zioVersion % "test",
         "dev.zio" %% "zio-test-sbt" % zioVersion % "test",
+      ),
+    )
+    .settings(
+      fork in Test := true,
+      fork in run := true,
+    )
+
+lazy val server =
+  (project in file("server"))
+    .settings(name := "caliban-http4s-graphql-server")
+    .settings(version := "0.0.0")
+    .settings(commonSettings)
+    .settings(
+      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
+      libraryDependencies ++= Seq(
+        "com.github.ghostdogpr" %% "caliban"        % calibanVersion,
+        "com.github.ghostdogpr" %% "caliban-http4s" % calibanVersion,
       ),
     )
     .settings(
@@ -82,7 +100,8 @@ lazy val examples =
       skip in publish := true,
     )
     .dependsOn(
-      core
+      core,
+      server,
     )
 
 val commonSettings =

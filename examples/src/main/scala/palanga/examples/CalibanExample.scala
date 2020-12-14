@@ -2,17 +2,13 @@ package palanga.examples
 
 import caliban.GraphQL.graphQL
 import caliban.schema.GenericSchema
-import caliban.{ GraphQL, Http4sAdapter, RootResolver }
-import org.http4s.implicits._
-import org.http4s.server.Router
-import org.http4s.server.blaze.BlazeServerBuilder
-import org.http4s.server.middleware.CORS
+import caliban.{ GraphQL, RootResolver }
+import palanga.caliban.http4s.server
 import palanga.examples.SimpleExample._
 import palanga.zio.eventsourcing.EventSource.EventSource
 import palanga.zio.eventsourcing.{ EventSource, Journal }
-import zio._
-import zio.interop.catz._
 import zio.stream.ZStream
+import zio.{ ExitCode, URIO, ZEnv, ZIO }
 
 import java.util.UUID
 
@@ -33,7 +29,7 @@ object CalibanExample extends zio.App {
   case class CreatePainterArgs(name: Name, paintings: List[Painting])
   case class AddPaintingsArgs(id: UUID, paintings: List[Painting])
 
-  val painters = EventSource.of[Painter, Event]
+  private val painters = EventSource.of[Painter, Event]
 
   private val queries =
     Queries(
@@ -62,29 +58,8 @@ object CalibanExample extends zio.App {
   }
 
   override def run(args: List[String]): URIO[ZEnv, ExitCode] =
-    ZIO
-      .runtime[ZEnv with EventSource[Painter, Event]]
-      .flatMap(implicit runtime =>
-        for {
-          interpreter <- ExampleApi.api.interpreter
-          _           <- BlazeServerBuilder[ExampleTask](runtime.platform.executor.asEC)
-                 .bindHttp(8088, "localhost")
-                 .withHttpApp(
-                   Router[ExampleTask](
-                     "/api/graphql" -> CORS(Http4sAdapter.makeHttpService(interpreter)),
-                     "/ws/graphql"  -> CORS(Http4sAdapter.makeWebSocketService(interpreter)),
-                   ).orNotFound
-                 )
-                 .resource
-                 .toManaged
-                 .useForever
-        } yield ()
-      )
-      .provideCustomLayer(fullLayer)
-      .exitCode
+    server.run(ExampleApi.api).provideCustomLayer(fullLayer).exitCode
 
   private val fullLayer = Journal.inMemory[Event] >>> EventSource.live(applyEvent)
-
-  private type ExampleTask[A] = RIO[ZEnv with EventSource[Painter, Event], A]
 
 }
