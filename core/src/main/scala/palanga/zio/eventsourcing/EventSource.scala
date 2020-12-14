@@ -1,5 +1,6 @@
 package palanga.zio.eventsourcing
 
+import palanga.zio.eventsourcing.Journal.Journal
 import zio._
 import zio.stream.{ Stream, ZStream }
 
@@ -43,21 +44,19 @@ object EventSource {
    */
   def live[A, Ev](
     f: ApplyEvent[A, Ev]
-  )(implicit atag: Tag[A], etag: Tag[Ev]): ZLayer[Has[Journal[Ev]], Nothing, EventSource[A, Ev]] =
+  )(implicit atag: Tag[A], etag: Tag[Ev]): ZLayer[Journal[Ev], Nothing, EventSource[A, Ev]] =
     ZLayer fromService (EventSource(_, f))
 
-  def apply[A, Ev](db: Journal[Ev], f: ApplyEvent[A, Ev]): EventSource.Service[A, Ev] =
+  /**
+   * Consider using [[live]] instead to construct a ZLayer.
+   */
+  def apply[A, Ev](db: Journal.Service[Ev], f: ApplyEvent[A, Ev]): EventSource.Service[A, Ev] =
     new EventSourceLive(db, f)
 
   def write[A, Ev](
     eventResult: Either[Throwable, (AggregateId, Ev)]
   )(implicit atag: Tag[A], evtag: Tag[Ev]): ZIO[EventSource[A, Ev], Throwable, (AggregateId, Ev)] =
     ZIO.accessM(_.get.write(eventResult))
-
-  def events[A, Ev](
-    aggregateId: UUID
-  )(implicit atag: Tag[A], evtag: Tag[Ev]): ZStream[EventSource[A, Ev], Throwable, Ev] =
-    ZStream.accessStream(_.get.events(aggregateId))
 
   def read[A, Ev](
     aggregateId: UUID
@@ -70,11 +69,20 @@ object EventSource {
   )(implicit atag: Tag[A], evtag: Tag[Ev]): ZIO[EventSource[A, Ev], Throwable, Option[(AggregateId, Ev)]] =
     ZIO.accessM(_.get.readAndApplyCommand(id, command))
 
+  def readAll[A, Ev](implicit atag: Tag[A], evtag: Tag[Ev]): ZStream[EventSource[A, Ev], Throwable, A] =
+    ZStream.accessStream(_.get.readAll)
+
+  def events[A, Ev](
+    aggregateId: UUID
+  )(implicit atag: Tag[A], evtag: Tag[Ev]): ZStream[EventSource[A, Ev], Throwable, Ev] =
+    ZStream.accessStream(_.get.events(aggregateId))
+
   trait Service[A, Ev] {
     def write(eventResult: Either[Throwable, (AggregateId, Ev)]): Task[(AggregateId, Ev)]
-    def events(aggregateId: UUID): Stream[Throwable, Ev]
     def read(aggregateId: UUID): Task[Option[A]]
     def readAndApplyCommand(aggregateId: UUID, command: A => Either[Throwable, Ev]): Task[Option[(AggregateId, Ev)]]
+    def readAll: Stream[Throwable, A]
+    def events(aggregateId: UUID): Stream[Throwable, Ev]
   }
 
 }
@@ -90,36 +98,40 @@ object EventSource {
  * @tparam A the aggregate type
  * @tparam Ev the event type
  */
-final class EventSourceLive[A, Ev] private[eventsourcing] (db: Journal[Ev], f: ApplyEvent[A, Ev])
+final class EventSourceLive[A, Ev] private[eventsourcing] (db: Journal.Service[Ev], f: ApplyEvent[A, Ev])
     extends EventSource.Service[A, Ev] {
 
   override def write(commandResult: Either[Throwable, (AggregateId, Ev)]): Task[(AggregateId, Ev)] =
     ZIO
       .fromEither(commandResult)
-      .flatMap(persist)
-
-  override def events(aggregateId: UUID): Stream[Throwable, Ev] = db read aggregateId
+      .flatMap(db.write)
 
   override def read(aggregateId: UUID): Task[Option[A]] =
     db.read(aggregateId)
       .fold(zero)(applyEvent(f))
-      .flatMap(result => ZIO fromEither result)
+      .flatMap(ZIO fromEither _)
 
-  def readAndApplyCommand(aggregateId: UUID, command: A => Either[Throwable, Ev]): Task[Option[(AggregateId, Ev)]] =
+  override def readAndApplyCommand(
+    aggregateId: UUID,
+    command: A => Either[Throwable, Ev],
+  ): Task[Option[(AggregateId, Ev)]] =
     this
       .read(aggregateId)
       .some
       .map(command(_).left.map(Some(_)))
       .flatMap(ZIO fromEither _)
       .map(aggregateId -> _)
-      .flatMap(persist(_).asSomeError)
+      .flatMap(db.write(_).asSomeError)
       .optional
 
-  private val zero: Either[Throwable, Option[A]] = Right(None)
+  override def readAll: Stream[Throwable, A]                    =
+    db.all.map { case (_, events) => events.foldLeft(zero)(applyEvent(f)) }
+      .mapM(ZIO fromEither _)
+      .collect { case Some(a) => a }
 
-  private def persist(event: (AggregateId, Ev)): ZIO[Any, Throwable, (AggregateId, Ev)] =
-    db.write(event)
-      .as(event)
+  override def events(aggregateId: UUID): Stream[Throwable, Ev] = db read aggregateId
+
+  private val zero: Either[Throwable, Option[A]] = Right(None)
 
   private def applyEvent(f: ApplyEvent[A, Ev])(prev: AggregateState, event: Ev): AggregateState =
     prev

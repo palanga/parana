@@ -20,6 +20,7 @@ object CalibanExample extends zio.App {
 
   case class Queries(
     painter: PainterArgs => ZIO[EventSource[Painter, Event], Throwable, Option[Painter]],
+    painters: ZStream[EventSource[Painter, Event], Throwable, Painter],
     events: PainterArgs => ZStream[EventSource[Painter, Event], Throwable, Event],
   )
 
@@ -35,6 +36,7 @@ object CalibanExample extends zio.App {
   private val queries =
     Queries(
       EventSource read [Painter, Event] _.id,
+      EventSource.readAll[Painter, Event],
       EventSource events [Painter, Event] _.id,
     )
 
