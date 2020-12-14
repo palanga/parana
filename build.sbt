@@ -1,6 +1,3 @@
-name := "zio-event-sourcing"
-version := "0.0.0"
-
 val mainScala = "2.13.4"
 val allScala  = Seq(mainScala)
 
@@ -51,6 +48,7 @@ lazy val root =
 lazy val core =
   (project in file("core"))
     .settings(name := "zio-event-sourcing")
+    .settings(version := "0.0.0")
     .settings(commonSettings)
     .settings(
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
