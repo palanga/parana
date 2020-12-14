@@ -46,13 +46,16 @@ object SimpleExample {
     case (maybePainter, event)                        => Left(new Exception(s"$maybePainter $event"))
   }
 
+  // Create an event source for our types without the dependencies it needs.
+  val painters = EventSource.of[Painter, Event]
+
   // Then we can use EventSource methods like this, leaving
   // the dependencies it needs for later.
   def createPainter(name: Name, paintings: Set[Painting] = Set.empty) =
-    EventSource write [Painter, Event] Painter(name, paintings)
+    painters write Painter(name, paintings)
 
   def getPainter(id: UUID) =
-    EventSource read [Painter, Event] id
+    painters read id
 
   // Create our dependencies.
   val appLayer = Journal.inMemory[Event] >>> EventSource.live(applyEvent)

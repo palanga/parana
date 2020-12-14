@@ -33,21 +33,21 @@ object CalibanExample extends zio.App {
   case class CreatePainterArgs(name: Name, paintings: List[Painting])
   case class AddPaintingsArgs(id: UUID, paintings: List[Painting])
 
+  val painters = EventSource.of[Painter, Event]
+
   private val queries =
     Queries(
-      EventSource read [Painter, Event] _.id,
-      EventSource.readAll[Painter, Event],
-      EventSource events [Painter, Event] _.id,
+      painters read _.id,
+      painters.readAll,
+      painters events _.id,
     )
 
   private val mutations =
     Mutations(
+      args => painters.write(Painter(args.name, args.paintings.toSet)),
       args =>
-        EventSource
-          .write[Painter, Event](Painter(args.name, args.paintings.toSet)),
-      args =>
-        EventSource
-          .readAndApplyCommand[Painter, Event](args.id, _ addPaintings args.paintings.toSet)
+        painters
+          .readAndApplyCommand(args.id, _ addPaintings args.paintings.toSet)
           .as(Some(args.id)),
     )
 

@@ -7,21 +7,25 @@ import zio.stream.{ Stream, ZStream }
 import java.util.UUID
 
 /**
- * Usage:
+ * Example usage:
  * {{{
- * val painter = EventSource.read[Painter](painterId)
+ *
+ * val painters = EventSource.of[Painter]
+ *
+ * val painter = painters.read(painterId)
  *
  * val journalLayer = Journal.inMemory[Painter]
  * val eventSourceLayer = EventSource.live(applyEvent)
  * val appLayer = journalLayer >>> eventSourceLayer
  *
  * val painterWithProvidedDependencies = painter.provideLayer(appLayer)
- *
  * }}}
  */
 object EventSource {
 
   type EventSource[A, Ev] = Has[Service[A, Ev]]
+
+  def of[A, Ev](implicit aTag: Tag[A], eTag: Tag[Ev]): EventSourceOf[A, Ev] = new EventSourceOf[A, Ev]()
 
   /**
    * Create a [[ZLayer]] from [[Journal]] to [[EventSource]]
@@ -53,29 +57,29 @@ object EventSource {
   def apply[A, Ev](db: Journal.Service[Ev], f: ApplyEvent[A, Ev]): EventSource.Service[A, Ev] =
     new EventSourceLive(db, f)
 
-  def write[A, Ev](
-    eventResult: Either[Throwable, (AggregateId, Ev)]
-  )(implicit atag: Tag[A], evtag: Tag[Ev]): ZIO[EventSource[A, Ev], Throwable, (AggregateId, Ev)] =
-    ZIO.accessM(_.get.write(eventResult))
+  final class EventSourceOf[A, Ev](implicit val aTag: Tag[A], val eTag: Tag[Ev]) {
 
-  def read[A, Ev](
-    aggregateId: UUID
-  )(implicit atag: Tag[A], evtag: Tag[Ev]): ZIO[EventSource[A, Ev], Throwable, Option[A]] =
-    ZIO.accessM(_.get.read(aggregateId))
+    def write(
+      eventResult: Either[Throwable, (AggregateId, Ev)]
+    ): ZIO[EventSource[A, Ev], Throwable, (AggregateId, Ev)] =
+      ZIO.accessM(_.get.write(eventResult))
 
-  def readAndApplyCommand[A, Ev](
-    id: UUID,
-    command: A => Either[Throwable, Ev],
-  )(implicit atag: Tag[A], evtag: Tag[Ev]): ZIO[EventSource[A, Ev], Throwable, Option[(AggregateId, Ev)]] =
-    ZIO.accessM(_.get.readAndApplyCommand(id, command))
+    def read(aggregateId: UUID): ZIO[EventSource[A, Ev], Throwable, Option[A]] =
+      ZIO.accessM(_.get.read(aggregateId))
 
-  def readAll[A, Ev](implicit atag: Tag[A], evtag: Tag[Ev]): ZStream[EventSource[A, Ev], Throwable, A] =
-    ZStream.accessStream(_.get.readAll)
+    def readAndApplyCommand(
+      id: UUID,
+      command: A => Either[Throwable, Ev],
+    ): ZIO[EventSource[A, Ev], Throwable, Option[(AggregateId, Ev)]] =
+      ZIO.accessM(_.get.readAndApplyCommand(id, command))
 
-  def events[A, Ev](
-    aggregateId: UUID
-  )(implicit atag: Tag[A], evtag: Tag[Ev]): ZStream[EventSource[A, Ev], Throwable, Ev] =
-    ZStream.accessStream(_.get.events(aggregateId))
+    def readAll: ZStream[EventSource[A, Ev], Throwable, A] =
+      ZStream.accessStream(_.get.readAll)
+
+    def events(aggregateId: UUID): ZStream[EventSource[A, Ev], Throwable, Ev] =
+      ZStream.accessStream(_.get.events(aggregateId))
+
+  }
 
   trait Service[A, Ev] {
     def write(eventResult: Either[Throwable, (AggregateId, Ev)]): Task[(AggregateId, Ev)]
@@ -87,17 +91,6 @@ object EventSource {
 
 }
 
-/**
- * The only difficult thing here is f: it takes a pair of optional aggregate and event. The None aggregate here
- * represents the initial state where the aggregate doesn't exist yet. Usually, in this case, the event
- * should be something like a creation event.
- * The result of this function must be either an error or the actual aggregate after applying the event successfully.
- *
- * @param db the event journal
- * @param f a function from an optional aggregate and an event to the result of applying that event to the aggregate
- * @tparam A the aggregate type
- * @tparam Ev the event type
- */
 final class EventSourceLive[A, Ev] private[eventsourcing] (db: Journal.Service[Ev], f: ApplyEvent[A, Ev])
     extends EventSource.Service[A, Ev] {
 
