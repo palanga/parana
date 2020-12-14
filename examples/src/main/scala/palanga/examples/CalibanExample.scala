@@ -17,7 +17,6 @@ object CalibanExample extends zio.App {
   case class Queries(
     painter: PainterArgs => ZIO[EventSource[Painter, Event], Throwable, Option[Painter]],
     painters: ZStream[EventSource[Painter, Event], Throwable, Painter],
-    events: PainterArgs => ZStream[EventSource[Painter, Event], Throwable, Event],
   )
 
   case class Mutations(
@@ -35,7 +34,6 @@ object CalibanExample extends zio.App {
     Queries(
       painters read _.id,
       painters.readAll,
-      painters events _.id,
     )
 
   private val mutations =
