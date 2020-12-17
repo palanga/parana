@@ -38,6 +38,7 @@ addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck"
 
 lazy val root =
   (project in file("."))
+    .settings(name := "zio-event-sourcing-root")
     .settings(skip in publish := true)
     .settings(historyPath := None)
     .aggregate(
