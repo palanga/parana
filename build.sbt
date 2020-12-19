@@ -90,6 +90,7 @@ val commonSettings =
     scalaVersion := mainScala,
     crossScalaVersions := allScala,
     libraryDependencies += compilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
+    resolvers += Resolver.bintrayRepo("palanga", "maven"),
     scalacOptions ++= Seq(
       "-deprecation",
       "-encoding",
