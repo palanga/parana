@@ -1,9 +1,14 @@
+name := "zio-event-sourcing"
+
+val zioEventSourcingVersion = "0.0.0"
+
 val mainScala = "2.13.4"
 val allScala  = Seq(mainScala)
 
-val zioVersion          = "1.0.3"
+val aconcaguaVersion    = "0.0.1"
 val calibanVersion      = "0.9.4"
-val zioCassandraVersion = "0.0.0+9-67330416+20201207-2133"
+val zioCassandraVersion = "0.0.2"
+val zioVersion          = "1.0.3"
 
 inThisBuild(
   List(
@@ -11,9 +16,6 @@ inThisBuild(
     homepage := Some(url("https://github.com/palanga/zio-event-sourcing")),
     licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
     parallelExecution in Test := false,
-    pgpPassphrase := sys.env.get("PGP_PASSWORD").map(_.toArray),
-    pgpPublicRing := file("/tmp/public.asc"),
-    pgpSecretRing := file("/tmp/secret.asc"),
     scmInfo := Some(
       ScmInfo(
         url("https://github.com/palanga/zio-event-sourcing/"),
@@ -28,19 +30,17 @@ inThisBuild(
         url("https://github.com/palanga"),
       )
     ),
+    publishTo := Some("Artifactory Realm" at "https://palanga.jfrog.io/artifactory/maven/"),
+    credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
   )
 )
-
-ThisBuild / publishTo := sonatypePublishToBundle.value
 
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck")
 
 lazy val root =
   (project in file("."))
-    .settings(name := "zio-event-sourcing-root")
     .settings(skip in publish := true)
-    .settings(historyPath := None)
     .aggregate(
       core,
       examples,
@@ -48,10 +48,12 @@ lazy val root =
 
 lazy val core =
   (project in file("core"))
-    .settings(name := "zio-event-sourcing")
-    .settings(version := "0.0.0")
     .settings(commonSettings)
     .settings(
+      name := "zio-event-sourcing",
+      version := zioEventSourcingVersion,
+      fork in Test := true,
+      fork in run := true,
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
       libraryDependencies ++= Seq(
         "dev.zio" %% "zio"          % zioVersion,
@@ -60,29 +62,23 @@ lazy val core =
         "dev.zio" %% "zio-test-sbt" % zioVersion % "test",
       ),
     )
-    .settings(
-      fork in Test := true,
-      fork in run := true,
-    )
 
 lazy val examples =
   (project in file("examples"))
-    .settings(name := "zio-event-sourcing-examples")
     .settings(commonSettings)
     .settings(
-      libraryDependencies ++= Seq(
-        "dev.palanga"   %% "caliban-http4s-graphql-server" % "0.0.1",
-        "dev.palanga"   %% "zio-cassandra"                 % zioCassandraVersion,
-        "ch.qos.logback" % "logback-classic"               % "1.2.3",
-      )
-    )
-    .settings(
+      name := "zio-event-sourcing-examples",
+      skip in publish := true,
       fork in Test := true,
       fork in run := true,
-      skip in publish := true,
+      libraryDependencies ++= Seq(
+        "dev.palanga"   %% "aconcagua"       % aconcaguaVersion,
+        "dev.palanga"   %% "zio-cassandra"   % zioCassandraVersion,
+        "ch.qos.logback" % "logback-classic" % "1.2.3",
+      ),
     )
     .dependsOn(
-      core,
+      core
     )
 
 val commonSettings =
@@ -90,7 +86,8 @@ val commonSettings =
     scalaVersion := mainScala,
     crossScalaVersions := allScala,
     libraryDependencies += compilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
-    resolvers += Resolver.bintrayRepo("palanga", "maven"),
+    resolvers += "Artifactory" at "https://palanga.jfrog.io/artifactory/maven/",
+    resolvers += Resolver.sonatypeRepo("snapshots"),
     scalacOptions ++= Seq(
       "-deprecation",
       "-encoding",

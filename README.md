@@ -12,7 +12,7 @@ Installation
 
 Add this to your `build.sbt` file
 ```sbt
-resolvers += Resolver.bintrayRepo("palanga", "maven")
+resolvers += "Artifactory" at "https://palanga.jfrog.io/artifactory/maven/"
 libraryDependencies += "dev.palanga" %% "zio-event-sourcing" % "version"
 ```
 
