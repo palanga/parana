@@ -1,13 +1,14 @@
 name := "zio-event-sourcing"
 
-val zioEventSourcingVersion = "0.0.0"
+val zioEventSourcingVersion = "0.0.1"
 
 val mainScala = "2.13.4"
 val allScala  = Seq(mainScala)
 
 val aconcaguaVersion    = "0.0.1"
 val calibanVersion      = "0.9.4"
-val zioCassandraVersion = "0.0.2"
+val circeVersion        = "0.12.3"
+val zioCassandraVersion = "0.0.3"
 val zioVersion          = "1.0.3"
 
 inThisBuild(
@@ -43,6 +44,7 @@ lazy val root =
     .settings(skip in publish := true)
     .aggregate(
       core,
+      journalCassandra,
       examples,
     )
 
@@ -63,6 +65,21 @@ lazy val core =
       ),
     )
 
+lazy val journalCassandra =
+  (project in file("journal/cassandra"))
+    .settings(commonSettings)
+    .settings(
+      name := "journal-cassandra",
+      version := zioEventSourcingVersion,
+      fork in Test := true,
+      fork in run := true,
+      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
+      libraryDependencies ++= Seq(
+        "dev.palanga" %% "zio-cassandra" % zioCassandraVersion
+      ),
+    )
+    .dependsOn(core)
+
 lazy val examples =
   (project in file("examples"))
     .settings(commonSettings)
@@ -72,13 +89,17 @@ lazy val examples =
       fork in Test := true,
       fork in run := true,
       libraryDependencies ++= Seq(
+        "io.circe"      %% "circe-core"      % circeVersion,
+        "io.circe"      %% "circe-generic"   % circeVersion,
+        "io.circe"      %% "circe-parser"    % circeVersion,
         "dev.palanga"   %% "aconcagua"       % aconcaguaVersion,
         "dev.palanga"   %% "zio-cassandra"   % zioCassandraVersion,
         "ch.qos.logback" % "logback-classic" % "1.2.3",
       ),
     )
     .dependsOn(
-      core
+      core,
+      journalCassandra,
     )
 
 val commonSettings =

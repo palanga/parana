@@ -1,6 +1,6 @@
 package palanga.zio.eventsourcing
 
-import palanga.zio.eventsourcing.Journal.Journal
+import palanga.zio.eventsourcing.journal.Journal
 import zio._
 import zio.stream.{ Stream, ZStream }
 

@@ -6,7 +6,8 @@ import caliban.{ GraphQL, RootResolver }
 import palanga.caliban.http4s.server
 import palanga.examples.SimpleExample._
 import palanga.zio.eventsourcing.EventSource.EventSource
-import palanga.zio.eventsourcing.{ EventSource, Journal }
+import palanga.zio.eventsourcing.EventSource
+import palanga.zio.eventsourcing.journal
 import zio.stream.ZStream
 import zio.{ ExitCode, URIO, ZEnv, ZIO }
 
@@ -58,6 +59,6 @@ object CalibanExample extends zio.App {
   override def run(args: List[String]): URIO[ZEnv, ExitCode] =
     server.run(ExampleApi.api).provideCustomLayer(fullLayer).exitCode
 
-  private val fullLayer = Journal.inMemory[Event] >>> EventSource.live(applyEvent)
+  private val fullLayer = journal.inMemory[Event] >>> EventSource.live(applyEvent)
 
 }

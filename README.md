@@ -14,6 +14,7 @@ Add this to your `build.sbt` file
 ```sbt
 resolvers += "Artifactory" at "https://palanga.jfrog.io/artifactory/maven/"
 libraryDependencies += "dev.palanga" %% "zio-event-sourcing" % "version"
+libraryDependencies += "dev.palanga" %% "journal-cassandra"  % "version"
 ```
 
 Usage
@@ -78,7 +79,7 @@ object SimpleExample {
     painters read id
 
   // Create our dependencies.
-  val appLayer = Journal.inMemory[Event] >>> EventSource.live(applyEvent)
+  val appLayer = journal.inMemory[Event] >>> EventSource.live(applyEvent)
 
   // Providing `appLayer` eliminates all the dependencies.
   val painterIO = createPainter("Remedios Varo").provideLayer(appLayer)

@@ -1,6 +1,6 @@
 package palanga.examples
 
-import palanga.zio.eventsourcing.{ EventSource, Journal }
+import palanga.zio.eventsourcing.{ journal, EventSource }
 
 import java.util.UUID
 
@@ -58,7 +58,7 @@ object SimpleExample {
     painters read id
 
   // Create our dependencies.
-  val appLayer = Journal.inMemory[Event] >>> EventSource.live(applyEvent)
+  val appLayer = journal.inMemory[Event] >>> EventSource.live(applyEvent)
 
   // Providing `appLayer` eliminates all the dependencies.
   val painterIO = createPainter("Remedios Varo").provideLayer(appLayer)
