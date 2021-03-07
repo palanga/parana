@@ -57,18 +57,15 @@ final private[eventsourcing] class CassandraJournal[Ev](
     s"SELECT DISTINCT id FROM $tableName;".toStatement.decode(_.getUuid("id"))
 
   // TODO decode should be safe in zio-cassandra
-  override def read(id: UUID): ZStream[Any, Throwable, Ev] =
+  override def read(id: UUID): ZStream[Any, CassandraException, Ev] =
     session
       .stream(selectStatement.bind(id).decode(row => codec.decode(row.getString("event")).fold(throw _, identity)))
       .flattenChunks
 
-  override def write(event: (AggregateId, Ev)): ZIO[Any, Throwable, (AggregateId, Ev)] =
+  override def write(event: (AggregateId, Ev)): ZIO[Any, CassandraException, (AggregateId, Ev)] =
     session.execute(insertStatement.bind(event._1, Uuids.timeBased(), codec.encode(event._2))).as(event)
 
-  override def all: ZStream[Any, Throwable, (UUID, Chunk[Ev])] =
-    session
-      .stream(selectAllIds)
-      .flattenChunks
-      .mapM(id => read(id).runCollect.map(id -> _))
+  override def allIds: ZStream[Any, CassandraException, AggregateId] =
+    session.stream(selectAllIds).flattenChunks
 
 }
