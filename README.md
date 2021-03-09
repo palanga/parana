@@ -5,7 +5,7 @@ An event sourcing library on top of ZIO
 ---------------------------------------
 
 * Scala 2.13.4
-* ZIO 1.0.3
+* ZIO 1.0.4-2
 
 Installation
 ------------
@@ -13,8 +13,8 @@ Installation
 Add this to your `build.sbt` file
 ```sbt
 resolvers += "Artifactory" at "https://palanga.jfrog.io/artifactory/maven/"
-libraryDependencies += "dev.palanga" %% "zio-event-sourcing" % "version"
-libraryDependencies += "dev.palanga" %% "journal-cassandra"  % "version"
+libraryDependencies += "dev.palanga" %% "zio-event-sourcing-core"               % "version"
+libraryDependencies += "dev.palanga" %% "zio-event-sourcing-journal-cassandra"  % "version"
 ```
 
 Usage
