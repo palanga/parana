@@ -46,6 +46,7 @@ lazy val root =
     .aggregate(
       core,
       journal_cassandra,
+      journal_cassandra_json,
       examples,
     )
 
