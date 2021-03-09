@@ -1,15 +1,16 @@
 name := "zio-event-sourcing"
 
-val zioEventSourcingVersion = "0.0.1"
+val ZIO_EVENT_SOURCING_VERSION = "0.0.1"
 
-val mainScala = "2.13.4"
-val allScala  = Seq(mainScala)
+val MAIN_SCALA = "2.13.4"
+val ALL_SCALA  = Seq(MAIN_SCALA)
 
-val aconcaguaVersion    = "0.0.1"
-val calibanVersion      = "0.9.4"
-val circeVersion        = "0.13.0"
-val zioCassandraVersion = "0.0.3"
-val zioVersion          = "1.0.4-2"
+val ACONCAGUA_VERSION     = "0.0.1"
+val CALIBAN_VERSION       = "0.9.4"
+val CIRCE_VERSION         = "0.13.0"
+val ZIO_CASSANDRA_VERSION = "0.0.3"
+val ZIO_JSON_VERSION      = "0.1"
+val ZIO_VERSION           = "1.0.4-2"
 
 inThisBuild(
   List(
@@ -44,7 +45,7 @@ lazy val root =
     .settings(skip in publish := true)
     .aggregate(
       core,
-      journalCassandra,
+      journal_cassandra,
       examples,
     )
 
@@ -52,60 +53,76 @@ lazy val core =
   (project in file("core"))
     .settings(commonSettings)
     .settings(
-      name := "zio-event-sourcing",
-      version := zioEventSourcingVersion,
+      name := "zio-event-sourcing-core",
+      version := ZIO_EVENT_SOURCING_VERSION,
       fork in Test := true,
       fork in run := true,
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
       libraryDependencies ++= Seq(
-        "dev.zio" %% "zio"          % zioVersion,
-        "dev.zio" %% "zio-streams"  % zioVersion,
-        "dev.zio" %% "zio-test"     % zioVersion % "test",
-        "dev.zio" %% "zio-test-sbt" % zioVersion % "test",
+        "dev.zio" %% "zio"          % ZIO_VERSION,
+        "dev.zio" %% "zio-streams"  % ZIO_VERSION,
+        "dev.zio" %% "zio-test"     % ZIO_VERSION % "test",
+        "dev.zio" %% "zio-test-sbt" % ZIO_VERSION % "test",
       ),
     )
 
-lazy val journalCassandra =
+lazy val journal_cassandra =
   (project in file("journal/cassandra"))
     .settings(commonSettings)
     .settings(
-      name := "journal-cassandra",
-      version := zioEventSourcingVersion,
+      name := "zio-event-sourcing-journal-cassandra",
+      version := ZIO_EVENT_SOURCING_VERSION,
       fork in Test := true,
       fork in run := true,
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
       libraryDependencies ++= Seq(
-        "dev.palanga" %% "zio-cassandra" % zioCassandraVersion
+        "dev.palanga" %% "zio-cassandra" % ZIO_CASSANDRA_VERSION
       ),
     )
     .dependsOn(core)
+
+lazy val journal_cassandra_json =
+  (project in file("journal/cassandra/json"))
+    .settings(commonSettings)
+    .settings(
+      name := "zio-event-sourcing-journal-cassandra-json",
+      version := ZIO_EVENT_SOURCING_VERSION,
+      fork in Test := true,
+      fork in run := true,
+      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
+      libraryDependencies ++= Seq(
+        "dev.zio" %% "zio-json" % ZIO_JSON_VERSION
+      ),
+    )
+    .dependsOn(journal_cassandra)
 
 lazy val examples =
   (project in file("examples"))
     .settings(commonSettings)
     .settings(
-      name := "zio-event-sourcing-examples",
+      name := "examples",
       skip in publish := true,
       fork in Test := true,
       fork in run := true,
       libraryDependencies ++= Seq(
-        "io.circe"      %% "circe-core"      % circeVersion,
-        "io.circe"      %% "circe-generic"   % circeVersion,
-        "io.circe"      %% "circe-parser"    % circeVersion,
-        "dev.palanga"   %% "aconcagua"       % aconcaguaVersion,
-        "dev.palanga"   %% "zio-cassandra"   % zioCassandraVersion,
+        "dev.palanga"   %% "aconcagua"       % ACONCAGUA_VERSION,
+        "dev.palanga"   %% "zio-cassandra"   % ZIO_CASSANDRA_VERSION,
+        "dev.zio"       %% "zio-json"        % ZIO_JSON_VERSION,
+        "io.circe"      %% "circe-core"      % CIRCE_VERSION,
+        "io.circe"      %% "circe-generic"   % CIRCE_VERSION,
+        "io.circe"      %% "circe-parser"    % CIRCE_VERSION,
         "ch.qos.logback" % "logback-classic" % "1.2.3",
       ),
     )
     .dependsOn(
       core,
-      journalCassandra,
+      journal_cassandra_json,
     )
 
 val commonSettings =
   Def.settings(
-    scalaVersion := mainScala,
-    crossScalaVersions := allScala,
+    scalaVersion := MAIN_SCALA,
+    crossScalaVersions := ALL_SCALA,
     libraryDependencies += compilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
     resolvers += "Artifactory" at "https://palanga.jfrog.io/artifactory/maven/",
     resolvers += Resolver.sonatypeRepo("snapshots"),
