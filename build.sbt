@@ -5,7 +5,7 @@ val zioEventSourcingVersion = "0.0.1"
 val mainScala = "2.13.4"
 val allScala  = Seq(mainScala)
 
-val aconcaguaVersion    = "0.0.1"
+val aconcaguaVersion    = "0.0.2"
 val calibanVersion      = "0.9.4"
 val circeVersion        = "0.12.3"
 val zioCassandraVersion = "0.0.3"
