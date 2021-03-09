@@ -8,7 +8,7 @@ val allScala  = Seq(mainScala)
 val aconcaguaVersion    = "0.0.1"
 val calibanVersion      = "0.9.4"
 val circeVersion        = "0.12.3"
-val zioCassandraVersion = "0.0.3"
+val zioCassandraVersion = "0.1.0"
 val zioVersion          = "1.0.3"
 
 inThisBuild(
