@@ -57,7 +57,7 @@ object EventSource {
   def apply[A, Ev](db: Journal.Service[Ev], f: ApplyEvent[A, Ev]): EventSource.Service[A, Ev] =
     new EventSourceLive(db, f)
 
-  final class EventSourceOf[A, Ev](implicit val aTag: Tag[A], val eTag: Tag[Ev]) {
+  final class EventSourceOf[A, Ev](implicit aTag: Tag[A], eTag: Tag[Ev]) {
 
     def write(
       eventResult: Either[Throwable, (AggregateId, Ev)]

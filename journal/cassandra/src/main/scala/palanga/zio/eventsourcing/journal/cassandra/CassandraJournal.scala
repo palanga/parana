@@ -2,6 +2,7 @@ package palanga.zio.eventsourcing.journal.cassandra
 
 import com.datastax.oss.driver.api.core.uuid.Uuids
 import palanga.zio.cassandra.ZStatement.StringOps
+import palanga.zio.cassandra.session.ZCqlSession
 import palanga.zio.cassandra.{ CassandraException, ZCqlSession }
 import palanga.zio.eventsourcing.AggregateId
 import palanga.zio.eventsourcing.journal.Journal
