@@ -59,10 +59,13 @@ object EventSource {
 
   final class EventSourceOf[A, Ev](implicit aTag: Tag[A], eTag: Tag[Ev]) {
 
-    def write(
+    def write(aggregateId: UUID)(event: Ev): ZIO[EventSource[A, Ev], Throwable, (AggregateId, Ev)] =
+      ZIO.accessM(_.get.write(aggregateId)(event))
+
+    def writeEither(
       eventResult: Either[Throwable, (AggregateId, Ev)]
     ): ZIO[EventSource[A, Ev], Throwable, (AggregateId, Ev)] =
-      ZIO.accessM(_.get.write(eventResult))
+      ZIO.accessM(_.get.writeEither(eventResult))
 
     def read(aggregateId: UUID): ZIO[EventSource[A, Ev], Throwable, Option[A]] =
       ZIO.accessM(_.get.read(aggregateId))
@@ -82,7 +85,8 @@ object EventSource {
   }
 
   trait Service[A, Ev] {
-    def write(eventResult: Either[Throwable, (AggregateId, Ev)]): Task[(AggregateId, Ev)]
+    def write(aggregateId: UUID)(event: Ev): Task[(AggregateId, Ev)]
+    def writeEither(eventResult: Either[Throwable, (AggregateId, Ev)]): Task[(AggregateId, Ev)]
     def read(aggregateId: UUID): Task[Option[A]]
     def readAndApplyCommand(aggregateId: UUID, command: A => Either[Throwable, Ev]): Task[Option[(AggregateId, Ev)]]
     def readAll: Stream[Throwable, A]
@@ -94,10 +98,13 @@ object EventSource {
 final class EventSourceLive[A, Ev] private[eventsourcing] (db: Journal.Service[Ev], f: ApplyEvent[A, Ev])
     extends EventSource.Service[A, Ev] {
 
-  override def write(commandResult: Either[Throwable, (AggregateId, Ev)]): Task[(AggregateId, Ev)] =
+  override def write(aggregateId: AggregateId)(event: Ev): Task[(AggregateId, Ev)] =
+    db.write(aggregateId, event)
+
+  override def writeEither(commandResult: Either[Throwable, (AggregateId, Ev)]): Task[(AggregateId, Ev)] =
     ZIO
       .fromEither(commandResult)
-      .flatMap(db.write)
+      .flatMap(write)
 
   override def read(aggregateId: UUID): Task[Option[A]] =
     db.read(aggregateId)
@@ -114,7 +121,7 @@ final class EventSourceLive[A, Ev] private[eventsourcing] (db: Journal.Service[E
       .map(command(_).left.map(Some(_)))
       .flatMap(ZIO fromEither _)
       .map(aggregateId -> _)
-      .flatMap(db.write(_).asSomeError)
+      .flatMap(write(_).asSomeError)
       .optional
 
   override def readAll: Stream[Throwable, A]                    =
@@ -123,6 +130,9 @@ final class EventSourceLive[A, Ev] private[eventsourcing] (db: Journal.Service[E
       .collect { case Some(a) => a }
 
   override def events(aggregateId: UUID): Stream[Throwable, Ev] = db read aggregateId
+
+  private def write(idEventPair: (AggregateId, Ev)): Task[(AggregateId, Ev)] =
+    db.write(idEventPair._1, idEventPair._2)
 
   private val zero: Either[Throwable, Option[A]] = Right(None)
 

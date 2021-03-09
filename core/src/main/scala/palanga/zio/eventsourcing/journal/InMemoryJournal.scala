@@ -22,8 +22,8 @@ private[eventsourcing] class InMemoryJournal[Ev](private val eventsTMap: TMap[Ag
   override def read(id: UUID): ZStream[Any, Nothing, Ev] =
     ZStream fromIterableM eventsTMap.getOrElse(id, Chunk.empty).commit
 
-  override def write(event: (AggregateId, Ev)): ZIO[Any, Nothing, (AggregateId, Ev)] =
-    eventsTMap.merge(event._1, Chunk(event._2))(_ ++ _).commit as event
+  override def write(id: AggregateId, event: Ev): ZIO[Any, Nothing, (AggregateId, Ev)] =
+    eventsTMap.merge(id, Chunk(event))(_ ++ _).commit as (id -> event)
 
   override def allIds: ZStream[Any, Nothing, AggregateId] =
     ZStream fromIterableM eventsTMap.keys.commit

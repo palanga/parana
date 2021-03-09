@@ -52,7 +52,7 @@ object SimpleExample {
   // Then we can use EventSource methods like this, leaving
   // the dependencies it needs for later.
   def createPainter(name: Name, paintings: Set[Painting] = Set.empty) =
-    painters write Painter(name, paintings)
+    painters writeEither Painter(name, paintings)
 
   def getPainter(id: UUID) =
     painters read id

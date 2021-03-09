@@ -39,7 +39,7 @@ object CalibanExample extends zio.App {
 
   private val mutations =
     Mutations(
-      args => painters.write(Painter(args.name, args.paintings.toSet)),
+      args => painters.writeEither(Painter(args.name, args.paintings.toSet)),
       args =>
         painters
           .readAndApplyCommand(args.id, _ addPaintings args.paintings.toSet)

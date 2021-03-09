@@ -63,10 +63,14 @@ final private[eventsourcing] class CassandraJournal[Ev](
       .stream(selectStatement.bind(id).decode(row => codec.decode(row.getString("event")).fold(throw _, identity)))
       .flattenChunks
 
-  override def write(event: (AggregateId, Ev)): ZIO[Any, CassandraException, (AggregateId, Ev)] =
-    session.execute(insertStatement.bind(event._1, Uuids.timeBased(), codec.encode(event._2))).as(event)
+  override def write(id: AggregateId, event: Ev): ZIO[Any, CassandraException, (AggregateId, Ev)] =
+    session
+      .execute(insertStatement.bind(id, Uuids.timeBased(), codec.encode(event)))
+      .as(id -> event)
 
-  override def allIds: ZStream[Any, CassandraException, AggregateId] =
-    session.stream(selectAllIds).flattenChunks
+  override def allIds: ZStream[Any, CassandraException, AggregateId]                              =
+    session
+      .stream(selectAllIds)
+      .flattenChunks
 
 }
