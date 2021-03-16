@@ -1,16 +1,21 @@
 name := "zio-event-sourcing"
 
-val ZIO_EVENT_SOURCING_VERSION = "0.1.1"
+val ZIO_EVENT_SOURCING_VERSION = "0.1.2"
 
 val MAIN_SCALA = "2.13.4"
 val ALL_SCALA  = Seq(MAIN_SCALA)
 
-val ACONCAGUA_VERSION     = "0.0.1"
-val CALIBAN_VERSION       = "0.9.4"
-val CIRCE_VERSION         = "0.13.0"
+val ACONCAGUA_VERSION = "0.0.1"
+
+val CALIBAN_VERSION = "0.9.4"
+
+val CIRCE_VERSION = "0.13.0"
+
 val ZIO_CASSANDRA_VERSION = "0.2.0"
-val ZIO_JSON_VERSION      = "0.1"
-val ZIO_VERSION           = "1.0.4-2"
+
+val ZIO_JSON_VERSION = "0.1"
+
+val ZIO_VERSION = "1.0.5"
 
 inThisBuild(
   List(
