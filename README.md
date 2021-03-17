@@ -4,9 +4,6 @@ zio-event-sourcing
 An event sourcing library on top of ZIO
 ---------------------------------------
 
-* Scala 2.13.4
-* ZIO 1.0.4-2
-
 Installation
 ------------
 
