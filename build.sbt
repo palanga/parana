@@ -9,8 +9,6 @@ val ACONCAGUA_VERSION = "0.0.1"
 
 val CALIBAN_VERSION = "0.9.4"
 
-val CIRCE_VERSION = "0.13.0"
-
 val ZIO_CASSANDRA_VERSION = "0.2.0"
 
 val ZIO_JSON_VERSION = "0.1"
@@ -112,11 +110,6 @@ lazy val examples =
       fork in run := true,
       libraryDependencies ++= Seq(
         "dev.palanga"   %% "aconcagua"       % ACONCAGUA_VERSION,
-        "dev.palanga"   %% "zio-cassandra"   % ZIO_CASSANDRA_VERSION,
-        "dev.zio"       %% "zio-json"        % ZIO_JSON_VERSION,
-        "io.circe"      %% "circe-core"      % CIRCE_VERSION,
-        "io.circe"      %% "circe-generic"   % CIRCE_VERSION,
-        "io.circe"      %% "circe-parser"    % CIRCE_VERSION,
         "ch.qos.logback" % "logback-classic" % "1.2.3",
       ),
     )

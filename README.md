@@ -8,48 +8,35 @@ Installation
 ------------
 
 Add this to your `build.sbt` file
+
 ```sbt
 resolvers += "Artifactory" at "https://palanga.jfrog.io/artifactory/maven/"
-libraryDependencies += "dev.palanga" %% "zio-event-sourcing-core"               % "version"
-libraryDependencies += "dev.palanga" %% "zio-event-sourcing-journal-cassandra"  % "version"
+libraryDependencies += "dev.palanga" %% "zio-event-sourcing-core" % "version"
+libraryDependencies += "dev.palanga" %% "zio-event-sourcing-journal-cassandra-json" % "version"
+
 ```
 
 Usage
 -----
 
 ```scala
-import palanga.zio.eventsourcing.{ EventSource, Journal }
+import palanga.zio.eventsourcing.EventSource.EventSource
+import palanga.zio.eventsourcing.{ journal, AggregateId, EventSource }
+import zio.{ Task, ZIO }
 
 import java.util.UUID
 
 object SimpleExample {
 
   // We will model painters and paintings.
-  // Creating a painter returns either an error or a pair containing the
-  // aggregate id and the event of painter created.
-  object Painter {
-    def apply(
-      name: Name,
-      paintings: Set[Painting] = Set.empty,
-      id: UUID = UUID.randomUUID(),
-    ): Either[Throwable, (UUID, Event.Created)] =
-      if (name.isBlank) Left(new Exception(s"No name"))
-      else Right(id -> Event.Created(Painter(paintings, name, id)))
+  case class Painter private (name: Name, paintings: Set[Painting]) {
+    def addPaintings(paintings: Set[Painting]): Painter = copy(paintings = this.paintings ++ paintings)
   }
 
-  // Adding paintings to a painter returns either an error or the event of
-  // paintings added to the painter.
-  case class Painter(paintings: Set[Painting], name: Name, id: UUID) {
-    def addPaintings(paintings: Set[Painting]) =
-      if (paintings.isEmpty) Left(new Exception(s"AddPaintings: empty paintings"))
-      else Right(Event.PaintingsAdded(paintings))
-  }
-
-  // The mentioned events.
-  sealed trait Event
-  object Event {
-    case class Created(painter: Painter)                extends Event
-    case class PaintingsAdded(paintings: Set[Painting]) extends Event
+  sealed trait PainterEvent
+  object PainterEvent {
+    case class Created(name: Name, paintings: Set[Painting]) extends PainterEvent
+    case class PaintingsAdded(paintings: Set[Painting])      extends PainterEvent
   }
 
   // A function that is used to recover a painter from events.
@@ -58,28 +45,38 @@ object SimpleExample {
   // Note that in the case of painter absence (None value) means that
   // the painter is not already created, so in that case, the only
   // possible event is the `Created` one.
-  def applyEvent: (Option[Painter], Event) => Either[Throwable, Painter] = {
-    case (None, Event.Created(painter))               => Right(painter)
-    case (Some(painter), added: Event.PaintingsAdded) => Right(painter.copy(painter.paintings ++ added.paintings))
-    case (maybePainter, event)                        => Left(new Exception(s"$maybePainter $event"))
+  def reduce: (Option[Painter], PainterEvent) => Either[Throwable, Painter] = {
+    case (None, PainterEvent.Created(name, paintings))           => Right(Painter(name, paintings))
+    case (Some(painter), PainterEvent.PaintingsAdded(paintings)) => Right(painter.addPaintings(paintings))
+    case (maybePainter, event)                                   => Left(new Exception(s"$maybePainter $event"))
   }
 
-  // Create an event source for our types without the dependencies it needs.
-  val painters = EventSource.of[Painter, Event]
+  // Create an event source for our types.
+  val painters = EventSource.of[Painter, PainterEvent]
 
-  // Then we can use EventSource methods like this, leaving
-  // the dependencies it needs for later.
-  def createPainter(name: Name, paintings: Set[Painting] = Set.empty) =
-    painters write Painter(name, paintings)
+  // Then we can use EventSource methods like this (there are more).
+  def createPainter(
+                     name: Name,
+                     paintings: Set[Painting] = Set.empty,
+                   ): ZIO[EventSource[Painter, PainterEvent], Throwable, (AggregateId, Painter)] =
+    painters persistNewAggregateFromEvent PainterEvent.Created(name, paintings)
 
-  def getPainter(id: UUID) =
-    painters read id
+  def getPainter(uuid: UUID): ZIO[EventSource[Painter, PainterEvent], Throwable, Painter] =
+    painters read uuid
+
+  def addPaintings(uuid: UUID, paintings: Set[Painting]): ZIO[EventSource[Painter, PainterEvent], Throwable, Painter] =
+    painters.persist(uuid)(PainterEvent.PaintingsAdded(paintings))
 
   // Create our dependencies.
-  val appLayer = journal.inMemory[Event] >>> EventSource.live(applyEvent)
+  val inMemoryLayer = journal.inMemory[PainterEvent] >>> EventSource.live(reduce)
 
   // Providing `appLayer` eliminates all the dependencies.
-  val painterIO = createPainter("Remedios Varo").provideLayer(appLayer)
+  val painterIO: Task[(AggregateId, Painter)] = createPainter("Remedios Varo").provideLayer(inMemoryLayer)
+
+  // If you want to use a cassandra journal instead you can:
+  implicit val painterEventEncoder = zio.json.DeriveJsonEncoder.gen[PainterEvent]
+  implicit val painterEventDecoder = zio.json.DeriveJsonDecoder.gen[PainterEvent]
+  val cassandraLayer               = journal.cassandra.json.live[PainterEvent] >>> EventSource.live(reduce)
 
   // Type aliases for convenience.
   type Name     = String

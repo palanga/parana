@@ -4,7 +4,7 @@ import palanga.zio.eventsourcing.journal.Journal
 import zio._
 import zio.stream.{ Stream, ZStream }
 
-import java.util.UUID
+import java.util.{ NoSuchElementException, UUID }
 
 /**
  * Example usage:
@@ -42,103 +42,107 @@ object EventSource {
    * }
    * }}}
    *
-   * @param f The function used to recover an aggregate from events
+   * @param reduce The function used to recover an aggregate from events
    * @tparam A The type of the aggregate
    * @tparam Ev The type of the event
    */
   def live[A, Ev](
-    f: ApplyEvent[A, Ev]
+    reduce: Reducer[A, Ev]
   )(implicit atag: Tag[A], etag: Tag[Ev]): ZLayer[Journal[Ev], Nothing, EventSource[A, Ev]] =
-    ZLayer fromService (EventSource(_, f))
+    ZLayer fromService (EventSource(_, reduce))
 
   /**
    * Consider using [[live]] instead to construct a ZLayer.
    */
-  def apply[A, Ev](db: Journal.Service[Ev], f: ApplyEvent[A, Ev]): EventSource.Service[A, Ev] =
-    new EventSourceLive(db, f)
+  def apply[A, Ev](journal: Journal.Service[Ev], reduce: Reducer[A, Ev]): EventSource.Service[A, Ev] =
+    new EventSourceLive(journal, reduce)
 
   final class EventSourceOf[A, Ev](implicit aTag: Tag[A], eTag: Tag[Ev]) {
 
-    def write(aggregateId: UUID)(event: Ev): ZIO[EventSource[A, Ev], Throwable, (AggregateId, Ev)] =
-      ZIO.accessM(_.get.write(aggregateId)(event))
+    def persistNewAggregateFromEvent(event: Ev): ZIO[EventSource[A, Ev], Throwable, (AggregateId, A)] =
+      ZIO.accessM(_.get.persistNewAggregateFromEvent(event))
 
-    def writeEither(
-      eventResult: Either[Throwable, (AggregateId, Ev)]
-    ): ZIO[EventSource[A, Ev], Throwable, (AggregateId, Ev)] =
-      ZIO.accessM(_.get.writeEither(eventResult))
+    def persist(uuid: AggregateId)(event: Ev): ZIO[EventSource[A, Ev], Throwable, A] =
+      ZIO.accessM(_.get.persist(uuid)(event))
 
-    def read(aggregateId: UUID): ZIO[EventSource[A, Ev], Throwable, Option[A]] =
-      ZIO.accessM(_.get.read(aggregateId))
+    def persistEither(uuid: AggregateId)(command: A => Either[Throwable, Ev]): ZIO[EventSource[A, Ev], Throwable, A] =
+      ZIO.accessM(_.get.persistEither(uuid)(command))
 
-    def readAndApplyCommand(
-      id: UUID,
-      command: A => Either[Throwable, Ev],
-    ): ZIO[EventSource[A, Ev], Throwable, Option[(AggregateId, Ev)]] =
-      ZIO.accessM(_.get.readAndApplyCommand(id, command))
+    def read(uuid: AggregateId): ZIO[EventSource[A, Ev], Throwable, A] =
+      ZIO.accessM(_.get.read(uuid))
 
-    def readAll: ZStream[EventSource[A, Ev], Throwable, A] =
+    def readOption(uuid: AggregateId): ZIO[EventSource[A, Ev], Throwable, Option[A]] =
+      ZIO.accessM(_.get.readOption(uuid))
+
+    def readAll: ZStream[EventSource[A, Ev], Throwable, (AggregateId, A)] =
       ZStream.accessStream(_.get.readAll)
 
-    def events(aggregateId: UUID): ZStream[EventSource[A, Ev], Throwable, Ev] =
-      ZStream.accessStream(_.get.events(aggregateId))
+    def events(uuid: AggregateId): ZStream[EventSource[A, Ev], Throwable, Ev] =
+      ZStream.accessStream(_.get.events(uuid))
 
   }
 
   trait Service[A, Ev] {
-    def write(aggregateId: UUID)(event: Ev): Task[(AggregateId, Ev)]
-    def writeEither(eventResult: Either[Throwable, (AggregateId, Ev)]): Task[(AggregateId, Ev)]
-    def read(aggregateId: UUID): Task[Option[A]]
-    def readAndApplyCommand(aggregateId: UUID, command: A => Either[Throwable, Ev]): Task[Option[(AggregateId, Ev)]]
-    def readAll: Stream[Throwable, A]
-    def events(aggregateId: UUID): Stream[Throwable, Ev]
+    def persistNewAggregateFromEvent(event: Ev): Task[(AggregateId, A)]
+    def persist(uuid: AggregateId)(event: Ev): Task[A]
+    def persistEither(uuid: AggregateId)(command: A => Either[Throwable, Ev]): Task[A]
+    def read(uuid: AggregateId): Task[A]
+    def readOption(uuid: AggregateId): Task[Option[A]]
+    def readAll: Stream[Throwable, (AggregateId, A)]
+    def events(uuid: AggregateId): Stream[Throwable, Ev]
   }
 
 }
 
-final class EventSourceLive[A, Ev] private[eventsourcing] (db: Journal.Service[Ev], f: ApplyEvent[A, Ev])
+final class EventSourceLive[A, Ev] private[eventsourcing] (journal: Journal.Service[Ev], reduce: Reducer[A, Ev])
     extends EventSource.Service[A, Ev] {
 
-  override def write(aggregateId: AggregateId)(event: Ev): Task[(AggregateId, Ev)] =
-    db.write(aggregateId, event)
+  override def persistNewAggregateFromEvent(event: Ev): Task[(AggregateId, A)] =
+    for {
+      a    <- ZIO fromEither reduce(None, event)
+      uuid <- ZIO effect UUID.randomUUID()
+      _    <- journal.write(uuid, event)
+    } yield uuid -> a
 
-  override def writeEither(commandResult: Either[Throwable, (AggregateId, Ev)]): Task[(AggregateId, Ev)] =
-    ZIO
-      .fromEither(commandResult)
-      .flatMap(write)
+  override def persist(uuid: AggregateId)(event: Ev): Task[A]                  =
+    for {
+      maybeA <- readOption(uuid)
+      newA   <- ZIO fromEither reduce(maybeA, event)
+      _      <- journal.write(uuid, event) when !(maybeA contains newA)
+    } yield newA
 
-  override def read(aggregateId: UUID): Task[Option[A]] =
-    db.read(aggregateId)
-      .fold(zero)(applyEvent(f))
+  override def persistEither(uuid: AggregateId)(command: A => Either[Throwable, Ev]): Task[A] =
+    for {
+      maybeA <- readOption(uuid)
+      event  <- maybeA.fold(noSuchElement(uuid))(ZIO fromEither command(_))
+      newA   <- ZIO fromEither reduce(maybeA, event)
+      _      <- journal.write(uuid, event) when !(maybeA contains newA)
+    } yield newA
+
+  private def noSuchElement(uuid: AggregateId): IO[Throwable, Ev] =
+    ZIO fail new NoSuchElementException(s"$uuid")
+
+  override def read(uuid: AggregateId): Task[A] =
+    readOption(uuid).someOrFail(new NoSuchElementException(s"$uuid"))
+
+  override def readOption(uuid: AggregateId): Task[Option[A]] =
+    journal
+      .read(uuid)
+      .fold(zero)(reduceState)
       .flatMap(ZIO fromEither _)
 
-  override def readAndApplyCommand(
-    aggregateId: UUID,
-    command: A => Either[Throwable, Ev],
-  ): Task[Option[(AggregateId, Ev)]] =
-    this
-      .read(aggregateId)
-      .some
-      .map(command(_).left.map(Some(_)))
-      .flatMap(ZIO fromEither _)
-      .map(aggregateId -> _)
-      .flatMap(write(_).asSomeError)
-      .optional
-
-  override def readAll: Stream[Throwable, A]                    =
-    db.all.map { case (_, events) => events.foldLeft(zero)(applyEvent(f)) }
+  override def readAll: Stream[Throwable, (AggregateId, A)]     =
+    journal.all.map { case (uuid, events) => events.foldLeft(zero)(reduceState).map(uuid -> _) }
       .mapM(ZIO fromEither _)
-      .collect { case Some(a) => a }
+      .collect { case (uuid, Some(a)) => uuid -> a }
 
-  override def events(aggregateId: UUID): Stream[Throwable, Ev] = db read aggregateId
-
-  private def write(idEventPair: (AggregateId, Ev)): Task[(AggregateId, Ev)] =
-    db.write(idEventPair._1, idEventPair._2)
+  override def events(uuid: AggregateId): Stream[Throwable, Ev] = journal read uuid
 
   private val zero: Either[Throwable, Option[A]] = Right(None)
 
-  private def applyEvent(f: ApplyEvent[A, Ev])(prev: AggregateState, event: Ev): AggregateState =
+  private def reduceState(prev: AggregateState, event: Ev): AggregateState =
     prev
-      .flatMap(f(_, event))
+      .flatMap(reduce(_, event))
       .map(Some(_))
 
   private type AggregateState = Either[Throwable, Option[A]]
