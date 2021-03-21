@@ -13,7 +13,7 @@ val CIRCE_VERSION = "0.13.0"
 
 val ZIO_CASSANDRA_VERSION = "0.2.0"
 
-val ZIO_JSON_VERSION = "0.1"
+val ZIO_JSON_VERSION = "0.1.2"
 
 val ZIO_VERSION = "1.0.5"
 
