@@ -3,17 +3,16 @@ package palanga.zio.eventsourcing.journal
 import palanga.zio.eventsourcing.AggregateId
 import zio.stm.TMap
 import zio.stream.ZStream
-import zio.{ Chunk, Tag, ZIO, ZLayer }
+import zio.{ Chunk, ZIO }
 
 import java.util.UUID
 
 object InMemoryJournal {
-  def layer[Ev](implicit etag: Tag[Ev]): ZLayer[Any, Nothing, Journal[Ev]] =
+  def make[Ev]: ZIO[Any, Nothing, Journal.Service[Ev]] =
     TMap
       .empty[UUID, Chunk[Ev]]
       .commit
       .map(new InMemoryJournal[Ev](_))
-      .toLayer
 }
 
 private[eventsourcing] class InMemoryJournal[Ev](private val eventsTMap: TMap[AggregateId, Chunk[Ev]])

@@ -12,7 +12,7 @@ import java.util.UUID
 object EventSourceSpec {
 
   val testSuite: Spec[EventSource[Painter, PainterEvent], TestFailure[Throwable], TestSuccess] =
-    suite("An event source")(
+    suite("an event source")(
       testM("can persist a new aggregate from a creation event") {
         painters
           .persistNewAggregateFromEvent(PainterEvent.Born("Remedios Varo"))

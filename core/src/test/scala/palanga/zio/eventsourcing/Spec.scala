@@ -6,13 +6,14 @@ import zio.test.{ DefaultRunnableSpec, TestAspect, _ }
 object Spec extends DefaultRunnableSpec {
 
   override def spec =
-    testSuite.provideCustomLayerShared(dependencies) @@ TestAspect.parallelN(4)
+    testSuite.provideCustomLayerShared(dependencies.orDie) @@ TestAspect.parallelN(4)
 
   private val testSuite =
     suite("zio event sourcing suite")(
-      EventSourceSpec.testSuite
+      EventSourceSpec.testSuite,
+      JournalSpec.testSuite,
     )
 
-  private val dependencies = journal.inMemory[PainterEvent] >>> EventSource.live(reduce)
+  private val dependencies = journal.inMemory[PainterEvent].layer >>> EventSource.live(reduce)
 
 }

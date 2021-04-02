@@ -56,6 +56,6 @@ object CalibanExample extends zio.App {
       )
   }
 
-  private val fullLayer = journal.inMemory[PainterEvent] >>> EventSource.live(reduce)
+  private val fullLayer = journal.inMemory[PainterEvent].layer >>> EventSource.live(reduce)
 
 }
