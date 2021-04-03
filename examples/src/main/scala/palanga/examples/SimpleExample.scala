@@ -1,7 +1,7 @@
 package palanga.examples
 
-import palanga.zio.eventsourcing.EventSource.EventSource
-import palanga.zio.eventsourcing.{ journal, AggregateId, EventSource }
+import palanga.parana.EventSource.EventSource
+import palanga.parana.{ journal, AggregateId, EventSource }
 import zio.{ Task, ZIO }
 
 import java.util.UUID

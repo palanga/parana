@@ -1,5 +1,5 @@
-zio-event-sourcing
-==================
+paraná
+======
 
 An event sourcing library on top of ZIO
 ---------------------------------------
@@ -11,8 +11,8 @@ Add this to your `build.sbt` file
 
 ```sbt
 resolvers += "Artifactory" at "https://palanga.jfrog.io/artifactory/maven/"
-libraryDependencies += "dev.palanga" %% "zio-event-sourcing-core" % "version"
-libraryDependencies += "dev.palanga" %% "zio-event-sourcing-journal-cassandra-json" % "version"
+libraryDependencies += "dev.palanga" %% "parana-core" % "version"
+libraryDependencies += "dev.palanga" %% "parana-journal-cassandra-json" % "version"
 
 ```
 
@@ -20,8 +20,8 @@ Usage
 -----
 
 ```scala
-import palanga.zio.eventsourcing.EventSource.EventSource
-import palanga.zio.eventsourcing.{ journal, AggregateId, EventSource }
+import palanga.parana.EventSource.EventSource
+import palanga.parana.{ journal, AggregateId, EventSource }
 import zio.{ Task, ZIO }
 
 import java.util.UUID

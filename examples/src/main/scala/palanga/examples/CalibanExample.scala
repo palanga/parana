@@ -5,8 +5,8 @@ import caliban.schema.GenericSchema
 import caliban.{ GraphQL, RootResolver }
 import palanga.caliban.http4s.server
 import palanga.examples.SimpleExample._
-import palanga.zio.eventsourcing.EventSource.EventSource
-import palanga.zio.eventsourcing.{ journal, AggregateId, EventSource }
+import palanga.parana.EventSource.EventSource
+import palanga.parana.{ journal, AggregateId, EventSource }
 import zio.stream.ZStream
 import zio.{ ExitCode, URIO, ZEnv, ZIO }
 

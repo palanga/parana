@@ -1,8 +1,8 @@
-package palanga.zio.eventsourcing.journal.cassandra
+package palanga.parana.journal.cassandra
 
+import palanga.parana.journal.Journal
+import palanga.parana.journal.cassandra.CassandraJournal.Codec
 import palanga.zio.cassandra.{ CassandraException, ZCqlSession }
-import palanga.zio.eventsourcing.journal.Journal
-import palanga.zio.eventsourcing.journal.cassandra.CassandraJournal.Codec
 import zio.json._
 import zio.{ Tag, ZLayer }
 

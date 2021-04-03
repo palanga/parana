@@ -1,6 +1,6 @@
-package palanga.zio.eventsourcing
+package palanga.parana
 
-import palanga.zio.eventsourcing.journal.Journal
+import palanga.parana.journal.Journal
 import zio._
 import zio.stream.{ Stream, ZStream }
 
@@ -94,7 +94,7 @@ object EventSource {
 
 }
 
-final class EventSourceLive[A, Ev] private[eventsourcing] (journal: Journal.Service[Ev], reduce: Reducer[A, Ev])
+final class EventSourceLive[A, Ev] private[parana] (journal: Journal.Service[Ev], reduce: Reducer[A, Ev])
     extends EventSource.Service[A, Ev] {
 
   override def persistNewAggregateFromEvent(event: Ev): Task[(AggregateId, A)] =

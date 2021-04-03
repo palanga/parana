@@ -1,6 +1,6 @@
-package palanga.zio.eventsourcing.journal
+package palanga.parana.journal
 
-import palanga.zio.eventsourcing.AggregateId
+import palanga.parana.AggregateId
 import zio._
 import zio.stream.ZStream
 

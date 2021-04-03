@@ -1,6 +1,6 @@
-package palanga.zio.eventsourcing
+package palanga.parana
 
-import palanga.zio.eventsourcing.model.{ Name, Painter, Painting }
+import palanga.parana.model.{ Name, Painter, Painting }
 
 object events {
 

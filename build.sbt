@@ -1,6 +1,6 @@
-name := "zio-event-sourcing"
+name := "parana"
 
-val ZIO_EVENT_SOURCING_VERSION = "0.3.0"
+val PARANA_VERSION = "0.3.0"
 
 val MAIN_SCALA = "2.13.4"
 val ALL_SCALA  = Seq(MAIN_SCALA)
@@ -18,13 +18,13 @@ val ZIO_VERSION = "1.0.5"
 inThisBuild(
   List(
     organization := "dev.palanga",
-    homepage := Some(url("https://github.com/palanga/zio-event-sourcing")),
+    homepage := Some(url("https://github.com/palanga/parana")),
     licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
     parallelExecution in Test := false,
     scmInfo := Some(
       ScmInfo(
-        url("https://github.com/palanga/zio-event-sourcing/"),
-        "scm:git:git@github.com:palanga/zio-event-sourcing.git",
+        url("https://github.com/palanga/parana/"),
+        "scm:git:git@github.com:palanga/parana.git",
       )
     ),
     developers := List(
@@ -57,8 +57,8 @@ lazy val core =
   (project in file("core"))
     .settings(commonSettings)
     .settings(
-      name := "zio-event-sourcing-core",
-      version := ZIO_EVENT_SOURCING_VERSION,
+      name := "parana-core",
+      version := PARANA_VERSION,
       fork in Test := true,
       fork in run := true,
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
@@ -74,8 +74,8 @@ lazy val journal_cassandra =
   (project in file("journal/cassandra"))
     .settings(commonSettings)
     .settings(
-      name := "zio-event-sourcing-journal-cassandra",
-      version := ZIO_EVENT_SOURCING_VERSION,
+      name := "parana-journal-cassandra",
+      version := PARANA_VERSION,
       fork in Test := true,
       fork in run := true,
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
@@ -89,8 +89,8 @@ lazy val journal_cassandra_json =
   (project in file("journal/cassandra/json"))
     .settings(commonSettings)
     .settings(
-      name := "zio-event-sourcing-journal-cassandra-json",
-      version := ZIO_EVENT_SOURCING_VERSION,
+      name := "parana-journal-cassandra-json",
+      version := PARANA_VERSION,
       fork in Test := true,
       fork in run := true,
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),

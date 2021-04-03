@@ -1,6 +1,6 @@
-package palanga.zio.eventsourcing
+package palanga.parana
 
-import palanga.zio.eventsourcing.events.PainterEvent
+import palanga.parana.events.PainterEvent
 import zio.test.Assertion._
 import zio.test._
 import zio.{ Queue, ZQueue }

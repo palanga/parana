@@ -1,7 +1,7 @@
-package palanga.zio.eventsourcing
+package palanga.parana
 
-import palanga.zio.eventsourcing.events.{ reduce, PainterEvent }
-import zio.test.{ DefaultRunnableSpec, TestAspect, _ }
+import palanga.parana.events.{ reduce, PainterEvent }
+import zio.test.{ DefaultRunnableSpec, TestAspect }
 
 object Spec extends DefaultRunnableSpec {
 
@@ -9,7 +9,7 @@ object Spec extends DefaultRunnableSpec {
     testSuite.provideCustomLayerShared(dependencies.orDie) @@ TestAspect.parallelN(4)
 
   private val testSuite =
-    suite("zio event sourcing suite")(
+    suite("río paraná suite")(
       EventSourceSpec.testSuite,
       JournalSpec.testSuite,
     )

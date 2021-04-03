@@ -1,6 +1,6 @@
-package palanga.zio.eventsourcing.journal
+package palanga.parana.journal
 
-import palanga.zio.eventsourcing.AggregateId
+import palanga.parana.AggregateId
 import zio.stm.TMap
 import zio.stream.ZStream
 import zio.{ Chunk, ZIO }
@@ -15,7 +15,7 @@ object InMemoryJournal {
       .map(new InMemoryJournal[Ev](_))
 }
 
-private[eventsourcing] class InMemoryJournal[Ev](private val eventsTMap: TMap[AggregateId, Chunk[Ev]])
+private[parana] class InMemoryJournal[Ev](private val eventsTMap: TMap[AggregateId, Chunk[Ev]])
     extends Journal.Service[Ev] {
 
   override def read(id: UUID): ZStream[Any, Nothing, Ev] =

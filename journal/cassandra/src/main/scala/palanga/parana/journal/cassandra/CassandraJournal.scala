@@ -1,12 +1,13 @@
-package palanga.zio.eventsourcing.journal.cassandra
+package palanga.parana.journal.cassandra
 
 import com.datastax.oss.driver.api.core.uuid.Uuids
+import palanga.parana.AggregateId
+import palanga.parana.journal.Journal
+import palanga.parana.journal.Journal.Service
+import palanga.parana.journal.cassandra.CassandraJournal.Codec
 import palanga.zio.cassandra.ZStatement.StringOps
 import palanga.zio.cassandra.session.ZCqlSession
 import palanga.zio.cassandra.{ CassandraException, ZCqlSession }
-import palanga.zio.eventsourcing.AggregateId
-import palanga.zio.eventsourcing.journal.Journal
-import palanga.zio.eventsourcing.journal.cassandra.CassandraJournal.Codec
 import zio._
 import zio.stream.ZStream
 
@@ -42,11 +43,11 @@ object CassandraJournal {
   }
 }
 
-final private[eventsourcing] class CassandraJournal[Ev](
+final private[parana] class CassandraJournal[Ev](
   private val session: ZCqlSession.Service,
   private val tableName: String,
 )(implicit codec: Codec[Ev], etag: Tag[Ev])
-    extends Journal.Service[Ev] {
+    extends Service[Ev] {
 
   private val selectStatement =
     s"SELECT event FROM $tableName WHERE id=?;".toStatement

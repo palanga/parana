@@ -1,8 +1,8 @@
-package palanga.zio.eventsourcing
+package palanga.parana
 
-import palanga.zio.eventsourcing.EventSource.EventSource
-import palanga.zio.eventsourcing.events.{ painters, PainterEvent }
-import palanga.zio.eventsourcing.model.Painter
+import palanga.parana.EventSource.EventSource
+import palanga.parana.events.{ painters, PainterEvent }
+import palanga.parana.model.Painter
 import zio.ZIO
 import zio.test.Assertion._
 import zio.test.{ TestFailure, _ }

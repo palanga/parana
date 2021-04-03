@@ -1,4 +1,4 @@
-package palanga.zio.eventsourcing
+package palanga.parana
 
 import zio.{ Has, Tag }
 
