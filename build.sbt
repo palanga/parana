@@ -1,6 +1,6 @@
 name := "parana"
 
-val PARANA_VERSION = "0.3.0"
+val PARANA_VERSION = "0.4.0"
 
 val MAIN_SCALA = "2.13.4"
 val ALL_SCALA  = Seq(MAIN_SCALA)
@@ -95,10 +95,15 @@ lazy val journal_cassandra_json =
       fork in run := true,
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
       libraryDependencies ++= Seq(
-        "dev.zio" %% "zio-json" % ZIO_JSON_VERSION
+        "dev.zio" %% "zio-json"     % ZIO_JSON_VERSION,
+        "dev.zio" %% "zio-test"     % ZIO_VERSION % "test",
+        "dev.zio" %% "zio-test-sbt" % ZIO_VERSION % "test",
       ),
     )
-    .dependsOn(journal_cassandra)
+    .dependsOn(
+      journal_cassandra,
+      core % "test->test",
+    )
 
 lazy val examples =
   (project in file("examples"))

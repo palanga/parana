@@ -27,15 +27,40 @@ object Journal {
 
 }
 
-case class JournalBuilder[Ev](private val journal: IO[Throwable, Journal.Service[Ev]]) extends AnyVal {
+case class JournalDecorator[Ev]() {
 
-  def layer(implicit etag: Tag[Ev]): ZLayer[Any, Throwable, Journal[Ev]] = journal.toLayer
-  def managed: ZManaged[Any, Throwable, Journal.Service[Ev]]             = journal.toManaged_
-  def raw: IO[Throwable, Journal.Service[Ev]]                            = journal
+  def toLayer(implicit etag: Tag[Ev])   = raw.toLayer
+  def toManaged(implicit etag: Tag[Ev]) = raw.toManaged_
+  def raw(implicit etag: Tag[Ev])       = ZIO.environment[Journal[Ev]].map(_.get)
 
   /**
    * Return a new Journal that executes the given function every time an event is written (aka projection)
    */
-  def tap(f: (AggregateId, Ev) => IO[Throwable, Any]) = copy(journal.map(_.tap(f)))
+  def tap[R](f: (AggregateId, Ev) => ZIO[R, Throwable, Any]) = JournalDecoratorR(f)
+
+}
+
+case class JournalDecoratorR[R, Ev](private val taps: (AggregateId, Ev) => ZIO[R, Throwable, Any]) {
+
+  def toLayer(implicit etag: Tag[Ev])   = raw.toLayer
+  def toManaged(implicit etag: Tag[Ev]) = raw.toManaged_
+  def raw(implicit etag: Tag[Ev])       =
+    for {
+      journal <- ZIO.environment[Journal[Ev]]
+      env     <- ZIO.environment[R]
+    } yield journal.get.tap(taps(_, _).provide(env))
+
+  /**
+   * Return a new Journal that executes the given function every time an event is written (aka projection)
+   */
+  def tap[R1](f: (AggregateId, Ev) => ZIO[R1, Throwable, Any]) =
+    copy(taps = (id: AggregateId, event: Ev) => this.taps(id, event) *> f(id, event))
+
+  /**
+   * Return a new Journal that executes the given function in parallel with the previously provided ones every time an
+   * event is written (aka projection)
+   */
+  def tapPar[R1](f: (AggregateId, Ev) => ZIO[R1, Throwable, Any]) =
+    copy(taps = (id: AggregateId, event: Ev) => this.taps(id, event) &> f(id, event))
 
 }

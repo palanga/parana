@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - update
   pull_request:
     branches:
       - master
@@ -24,11 +23,11 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-#    services:
-#      cassandra:
-#        image: cassandra
-#        ports:
-#          - 9042:9042
+    services:
+      cassandra:
+        image: cassandra
+        ports:
+          - 9042:9042
     steps:
       - uses: actions/checkout@v2
       - name: Set up JDK 1.11

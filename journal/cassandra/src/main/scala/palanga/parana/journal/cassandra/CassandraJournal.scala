@@ -17,9 +17,9 @@ object CassandraJournal {
 
   case class Codec[T](encode: T => String, decode: String => Either[Throwable, T])
 
-  def layer[Ev](
+  def make[Ev](
     shouldCreateTable: Boolean = false
-  )(implicit codec: Codec[Ev], etag: Tag[Ev]): ZLayer[ZCqlSession, CassandraException, Journal[Ev]] = {
+  )(implicit codec: Codec[Ev], etag: Tag[Ev]): ZIO[ZCqlSession, CassandraException, Journal.Service[Ev]] = {
 
     val tableName = etag.tag.longName.replace('.', '_')
 
@@ -33,7 +33,8 @@ object CassandraJournal {
          |);
          |""".stripMargin.toStatement
 
-    ZLayer.fromServiceM { session =>
+    ZIO.environment[ZCqlSession].flatMap { hasSession =>
+      val session = hasSession.get
       session
         .execute(createTable)
         .when(shouldCreateTable)
@@ -41,6 +42,12 @@ object CassandraJournal {
     }
 
   }
+
+  def layer[Ev](
+    shouldCreateTable: Boolean = false
+  )(implicit codec: Codec[Ev], etag: Tag[Ev]): ZLayer[ZCqlSession, CassandraException, Journal[Ev]] =
+    make(shouldCreateTable).toLayer
+
 }
 
 final private[parana] class CassandraJournal[Ev](

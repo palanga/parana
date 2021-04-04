@@ -49,7 +49,7 @@ object EventSource {
   def live[A, Ev](
     reduce: Reducer[A, Ev]
   )(implicit atag: Tag[A], etag: Tag[Ev]): ZLayer[Journal[Ev], Nothing, EventSource[A, Ev]] =
-    ZLayer fromService (EventSource(_, reduce))
+    ZIO.environment[Journal[Ev]].map(j => EventSource(j.get, reduce)).toLayer
 
   /**
    * Consider using [[live]] instead to construct a ZLayer.

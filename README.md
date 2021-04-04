@@ -68,7 +68,7 @@ object SimpleExample {
     painters.persist(uuid)(PainterEvent.PaintingsAdded(paintings))
 
   // Create our dependencies.
-  val inMemoryLayer = journal.inMemory[PainterEvent] >>> EventSource.live(reduce)
+  val inMemoryLayer = journal.inMemory[PainterEvent].toLayer >>> EventSource.live(reduce)
 
   // Providing `appLayer` eliminates all the dependencies.
   val painterIO: Task[(AggregateId, Painter)] = createPainter("Remedios Varo").provideLayer(inMemoryLayer)
