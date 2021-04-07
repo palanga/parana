@@ -29,10 +29,6 @@ object Journal {
 
 case class JournalDecorator[Ev]() {
 
-  def toLayer(implicit etag: Tag[Ev])   = raw.toLayer
-  def toManaged(implicit etag: Tag[Ev]) = raw.toManaged_
-  def raw(implicit etag: Tag[Ev])       = ZIO.environment[Journal[Ev]].map(_.get)
-
   /**
    * Return a new Journal that executes the given function every time an event is written (aka projection)
    */
@@ -42,13 +38,13 @@ case class JournalDecorator[Ev]() {
 
 case class JournalDecoratorR[R, Ev](private val taps: (AggregateId, Ev) => ZIO[R, Throwable, Any]) {
 
+  def decoratePure(journal: Journal.Service[Ev]) = ZIO.environment[R].map(env => journal.tap(taps(_, _).provide(env)))
+
+  def decorate[R1](journal: ZIO[R1, Throwable, Journal.Service[Ev]]) = journal flatMap decoratePure
+
   def toLayer(implicit etag: Tag[Ev])   = raw.toLayer
   def toManaged(implicit etag: Tag[Ev]) = raw.toManaged_
-  def raw(implicit etag: Tag[Ev])       =
-    for {
-      journal <- ZIO.environment[Journal[Ev]]
-      env     <- ZIO.environment[R]
-    } yield journal.get.tap(taps(_, _).provide(env))
+  def raw(implicit etag: Tag[Ev])       = ZIO.environment[Journal[Ev]].map(_.get).flatMap(decoratePure)
 
   /**
    * Return a new Journal that executes the given function every time an event is written (aka projection)

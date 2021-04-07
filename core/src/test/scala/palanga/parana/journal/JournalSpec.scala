@@ -60,7 +60,7 @@ object JournalSpec {
             .toLayer
 
         val id    = UUID.randomUUID()
-        val event = PainterEvent.Born("Remedios Varo")
+        val event = PainterEvent.Born("Frida Kahlo")
 
         (for {
           _              <- ZIO.accessM[Journal[PainterEvent]](_.get.write(id, event))
@@ -68,6 +68,27 @@ object JournalSpec {
           dequeuedString <- ZIO.accessM[Has[Queue[String]]](_.get.take)
         } yield assert(dequeuedEvent)(equalTo(id -> event)) && assert(dequeuedString)(equalTo(event.toString)))
           .provideSomeLayer(journalDecorator)
+
+      },
+      testM("can be decorated") {
+
+        val journalDecorator =
+          journal
+            .decorator[PainterEvent]
+            .tap(projectToQueue)
+            .tap(projectToStringQueue)
+
+        val decoratedJournalInMemory = journalDecorator.decorate(journal.inMemory)
+
+        val id    = UUID.randomUUID()
+        val event = PainterEvent.Born("Dorothea Tanning")
+
+        (for {
+          _              <- ZIO.accessM[Journal[PainterEvent]](_.get.write(id, event))
+          dequeuedEvent  <- ZIO.accessM[Has[Queue[(AggregateId, PainterEvent)]]](_.get.take)
+          dequeuedString <- ZIO.accessM[Has[Queue[String]]](_.get.take)
+        } yield assert(dequeuedEvent)(equalTo(id -> event)) && assert(dequeuedString)(equalTo(event.toString)))
+          .provideSomeLayer(decoratedJournalInMemory.toLayer)
 
       },
     ).provideSomeLayer[Journal[PainterEvent]](queuesLayer)

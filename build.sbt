@@ -1,6 +1,6 @@
 name := "parana"
 
-val PARANA_VERSION = "0.4.0"
+val PARANA_VERSION = "0.4.1"
 
 val MAIN_SCALA = "2.13.4"
 val ALL_SCALA  = Seq(MAIN_SCALA)
