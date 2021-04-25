@@ -13,7 +13,7 @@ val ZIO_CASSANDRA_VERSION = "0.3.0"
 
 val ZIO_JSON_VERSION = "0.1.3"
 
-val ZIO_VERSION = "1.0.6"
+val ZIO_VERSION = "1.0.7"
 
 inThisBuild(
   List(
