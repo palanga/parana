@@ -1,13 +1,9 @@
 name := "parana"
 
-val PARANA_VERSION = "0.4.2"
+val PARANA_VERSION = "0.4.3"
 
 val MAIN_SCALA = "2.13.4"
 val ALL_SCALA  = Seq(MAIN_SCALA)
-
-val ACONCAGUA_VERSION = "0.0.1"
-
-val CALIBAN_VERSION = "0.9.5"
 
 val ZIO_CASSANDRA_VERSION = "0.3.0"
 
@@ -113,10 +109,6 @@ lazy val examples =
       publish / skip := true,
       Test / fork := true,
       run / fork := true,
-      libraryDependencies ++= Seq(
-        "dev.palanga"   %% "aconcagua"       % ACONCAGUA_VERSION,
-        "ch.qos.logback" % "logback-classic" % "1.2.3",
-      ),
     )
     .dependsOn(
       core,
