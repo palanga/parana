@@ -1,13 +1,13 @@
 name := "parana"
 
-val PARANA_VERSION = "0.4.1"
+val PARANA_VERSION = "0.4.2"
 
 val MAIN_SCALA = "2.13.4"
 val ALL_SCALA  = Seq(MAIN_SCALA)
 
 val ACONCAGUA_VERSION = "0.0.1"
 
-val CALIBAN_VERSION = "0.9.4"
+val CALIBAN_VERSION = "0.9.5"
 
 val ZIO_CASSANDRA_VERSION = "0.3.0"
 
@@ -20,7 +20,7 @@ inThisBuild(
     organization := "dev.palanga",
     homepage := Some(url("https://github.com/palanga/parana")),
     licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
-    parallelExecution in Test := false,
+    Test / parallelExecution := false,
     scmInfo := Some(
       ScmInfo(
         url("https://github.com/palanga/parana/"),
@@ -45,7 +45,7 @@ addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck"
 
 lazy val root =
   (project in file("."))
-    .settings(skip in publish := true)
+    .settings(publish / skip := true)
     .aggregate(
       core,
       journal_cassandra,
@@ -59,8 +59,8 @@ lazy val core =
     .settings(
       name := "parana-core",
       version := PARANA_VERSION,
-      fork in Test := true,
-      fork in run := true,
+      Test / fork := true,
+      run / fork := true,
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
       libraryDependencies ++= Seq(
         "dev.zio" %% "zio"          % ZIO_VERSION,
@@ -76,8 +76,8 @@ lazy val journal_cassandra =
     .settings(
       name := "parana-journal-cassandra",
       version := PARANA_VERSION,
-      fork in Test := true,
-      fork in run := true,
+      Test / fork := true,
+      run / fork := true,
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
       libraryDependencies ++= Seq(
         "dev.palanga" %% "zio-cassandra" % ZIO_CASSANDRA_VERSION
@@ -91,8 +91,8 @@ lazy val journal_cassandra_json =
     .settings(
       name := "parana-journal-cassandra-json",
       version := PARANA_VERSION,
-      fork in Test := true,
-      fork in run := true,
+      Test / fork := true,
+      run / fork := true,
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
       libraryDependencies ++= Seq(
         "dev.zio" %% "zio-json"     % ZIO_JSON_VERSION,
@@ -110,9 +110,9 @@ lazy val examples =
     .settings(commonSettings)
     .settings(
       name := "examples",
-      skip in publish := true,
-      fork in Test := true,
-      fork in run := true,
+      publish / skip := true,
+      Test / fork := true,
+      run / fork := true,
       libraryDependencies ++= Seq(
         "dev.palanga"   %% "aconcagua"       % ACONCAGUA_VERSION,
         "ch.qos.logback" % "logback-classic" % "1.2.3",
@@ -141,27 +141,8 @@ val commonSettings =
       "-language:existentials",
       "-unchecked",
       "-Xlint:_,-type-parameter-shadow",
-      //    "-Xfatal-warnings",
       "-Ywarn-numeric-widen",
       "-Ywarn-unused:patvars,-implicits",
       "-Ywarn-value-discard",
-//      "-Ymacro-annotations",
-    ) ++ (CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, 12)) =>
-        Seq(
-          "-Xsource:2.13",
-          "-Yno-adapted-args",
-          "-Ypartial-unification",
-          "-Ywarn-extra-implicit",
-          "-Ywarn-inaccessible",
-          "-Ywarn-infer-any",
-          "-Ywarn-nullary-override",
-          "-Ywarn-nullary-unit",
-          "-opt-inline-from:<source>",
-          "-opt-warnings",
-          "-opt:l:inline",
-        )
-      case _             => Nil
-    }),
-//    scalacOptions in Test --= Seq("-Xfatal-warnings"),
+    ),
   )
