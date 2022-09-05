@@ -6,9 +6,8 @@ import palanga.parana.journal.Journal
 import palanga.parana.journal.Journal.Service
 import palanga.parana.journal.cassandra.CassandraJournal.Codec
 import palanga.zio.cassandra.ZStatement.StringOps
-import palanga.zio.cassandra.session.ZCqlSession
 import palanga.zio.cassandra.{ CassandraException, ZCqlSession }
-import zio._
+import zio.*
 import zio.stream.ZStream
 
 import java.util.UUID
@@ -21,9 +20,9 @@ object CassandraJournal {
     shouldCreateTable: Boolean = false
   )(implicit codec: Codec[Ev], etag: Tag[Ev]): ZIO[ZCqlSession, CassandraException, Journal.Service[Ev]] = {
 
-    val tableName = etag.tag.longName.replace('.', '_')
+    def tableName = etag.tag.longName.replace('.', '_')
 
-    val createTable =
+    def createTable =
       s"""
          |CREATE TABLE IF NOT EXISTS $tableName (
          |  id       uuid,
@@ -33,12 +32,11 @@ object CassandraJournal {
          |);
          |""".stripMargin.toStatement
 
-    ZIO.environment[ZCqlSession].flatMap { hasSession =>
-      val session = hasSession.get
+    ZIO.service[ZCqlSession].flatMap { session =>
       session
         .execute(createTable)
         .when(shouldCreateTable)
-        .as(new CassandraJournal[Ev](session, tableName))
+        .as(CassandraJournal[Ev](session, tableName))
     }
 
   }
@@ -46,12 +44,12 @@ object CassandraJournal {
   def layer[Ev](
     shouldCreateTable: Boolean = false
   )(implicit codec: Codec[Ev], etag: Tag[Ev]): ZLayer[ZCqlSession, CassandraException, Journal[Ev]] =
-    make(shouldCreateTable).toLayer
+    ZLayer.apply(make(shouldCreateTable))
 
 }
 
 final private[parana] class CassandraJournal[Ev](
-  private val session: ZCqlSession.Service,
+  private val session: ZCqlSession,
   private val tableName: String,
 )(implicit codec: Codec[Ev], etag: Tag[Ev])
     extends Service[Ev] {
@@ -76,7 +74,7 @@ final private[parana] class CassandraJournal[Ev](
       .execute(insertStatement.bind(id, Uuids.timeBased(), codec.encode(event)))
       .as(id -> event)
 
-  override def allIds: ZStream[Any, CassandraException, AggregateId]                              =
+  override def allIds: ZStream[Any, CassandraException, AggregateId] =
     session
       .stream(selectAllIds)
       .flattenChunks

@@ -1,7 +1,7 @@
 package palanga.parana.journal
 
 import palanga.parana.AggregateId
-import zio._
+import zio.*
 import zio.stream.ZStream
 
 object Journal {
@@ -12,7 +12,7 @@ object Journal {
     def write(id: AggregateId, event: Ev): ZIO[Any, Throwable, (AggregateId, Ev)]
     def allIds: ZStream[Any, Throwable, AggregateId]
 
-    def all: ZStream[Any, Throwable, (AggregateId, Chunk[Ev])] = allIds.mapM(id => read(id).runCollect.map(id -> _))
+    def all: ZStream[Any, Throwable, (AggregateId, Chunk[Ev])] = allIds.mapZIO(id => read(id).runCollect.map(id -> _))
 
     /**
      * Return a new Journal that executes the given function every time an event is written (aka projection)
@@ -38,13 +38,13 @@ case class JournalDecorator[Ev]() {
 
 case class JournalDecoratorR[R, Ev](private val taps: (AggregateId, Ev) => ZIO[R, Throwable, Any]) {
 
-  def decoratePure(journal: Journal.Service[Ev]) = ZIO.environment[R].map(env => journal.tap(taps(_, _).provide(env)))
+  def decoratePure(journal: Journal.Service[Ev]) =
+    ZIO.environment[R].map(env => journal.tap(taps(_, _).provideEnvironment(env)))
 
-  def decorate[R1](journal: ZIO[R1, Throwable, Journal.Service[Ev]]) = journal flatMap decoratePure
+  def decorate[R1](journal: ZIO[R1, Throwable, Journal.Service[Ev]]) = journal.flatMap(decoratePure)
 
-  def toLayer(implicit etag: Tag[Ev])   = raw.toLayer
-  def toManaged(implicit etag: Tag[Ev]) = raw.toManaged_
-  def raw(implicit etag: Tag[Ev])       = ZIO.environment[Journal[Ev]].map(_.get).flatMap(decoratePure)
+  def toLayer(implicit etag: Tag[Ev]) = ZLayer.apply(raw)
+  def raw(implicit etag: Tag[Ev])     = ZIO.service[Journal[Ev]].flatMap(decoratePure)
 
   /**
    * Return a new Journal that executes the given function every time an event is written (aka projection)

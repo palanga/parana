@@ -19,12 +19,12 @@ private[parana] class InMemoryJournal[Ev](private val eventsTMap: TMap[Aggregate
     extends Journal.Service[Ev] {
 
   override def read(id: UUID): ZStream[Any, Nothing, Ev] =
-    ZStream fromIterableM eventsTMap.getOrElse(id, Chunk.empty).commit
+    ZStream.fromIterableZIO(eventsTMap.getOrElse(id, Chunk.empty).commit)
 
   override def write(id: AggregateId, event: Ev): ZIO[Any, Nothing, (AggregateId, Ev)] =
-    eventsTMap.merge(id, Chunk(event))(_ ++ _).commit as (id -> event)
+    eventsTMap.merge(id, Chunk(event))(_ ++ _).commit.as(id -> event)
 
   override def allIds: ZStream[Any, Nothing, AggregateId] =
-    ZStream fromIterableM eventsTMap.keys.commit
+    ZStream.fromIterableZIO(eventsTMap.keys.commit)
 
 }

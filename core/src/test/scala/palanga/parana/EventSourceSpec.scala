@@ -4,28 +4,28 @@ import palanga.parana.EventSource.EventSource
 import palanga.parana.events.{ painters, PainterEvent }
 import palanga.parana.model.Painter
 import zio.ZIO
-import zio.test.Assertion._
-import zio.test.{ TestFailure, _ }
+import zio.test.*
+import zio.test.Assertion.*
 
 import java.util.UUID
 
 object EventSourceSpec {
 
-  val testSuite: Spec[EventSource[Painter, PainterEvent], TestFailure[Throwable], TestSuccess] =
+  val testSuite =
     suite("an event source")(
-      testM("can persist a new aggregate from a creation event") {
+      test("can persist a new aggregate from a creation event") {
         painters
           .persistNewAggregateFromEvent(PainterEvent.Born("Remedios Varo"))
           .map(_._2)
           .map(assert(_)(equalTo(Painter("Remedios Varo"))))
       },
-      testM("can't persist a new aggregate from a non creation event") {
+      test("can't persist a new aggregate from a non creation event") {
         painters
           .persistNewAggregateFromEvent(PainterEvent.PaintingPainted("Bordando el manto terrestre"))
-          .run
+          .exit
           .map(assert(_)(fails(anything))) // TODO better error types
       },
-      testM("can read a persisted aggregate") {
+      test("can read a persisted aggregate") {
         for {
           (uuid, _)     <- painters.persistNewAggregateFromEvent(PainterEvent.Born("Dorothea Tanning"))
           dorothea      <- painters.read(uuid)
@@ -33,36 +33,36 @@ object EventSourceSpec {
         } yield assert(dorothea)(equalTo(Painter("Dorothea Tanning"))) &&
           assert(maybeDorothea)(isSome(equalTo(dorothea)))
       },
-      testM("can't read a non existent aggregate") {
+      test("can't read a non existent aggregate") {
         val uuid = UUID.randomUUID()
         for {
-          readFailed <- painters.read(uuid).run
+          readFailed <- painters.read(uuid).exit
           none       <- painters.readOption(uuid)
         } yield assert(readFailed)(fails(anything)) && // TODO better errors
           assert(none)(isNone)
       },
-      testM("can persist an event for an existent aggregate") {
+      test("can persist an event for an existent aggregate") {
         for {
           (uuid, _) <- painters.persistNewAggregateFromEvent(PainterEvent.Born("Tarsila do Amaral"))
           tarsila   <- painters.persist(uuid)(PainterEvent.PaintingPainted("Abaporu"))
         } yield assert(tarsila)(equalTo(Painter("Tarsila do Amaral", Set("Abaporu"))))
       },
-      testM("can't persist an event for a non existent aggregate") {
+      test("can't persist an event for a non existent aggregate") {
         painters
           .persist(UUID.randomUUID())(PainterEvent.PaintingPainted("Bordando el manto terrestre")) // TODO repetido
-          .run
+          .exit
           .map(assert(_)(fails(anything)))                                                         // TODO better error types
       },
       test("TODO - can't persist an event that can't be applied")(assertCompletes),
       test("TODO - can't persist a failed effectul event")(assertCompletes),
-      testM("can read all aggregates") { // TODO gen
+      test("can read all aggregates") { // TODO gen
         val frida  = Painter("Frida Kahlo", Set("Autorretrato con collar de espinas y colibrí", "La columna rota"))
         val berthe = Painter("Berthe Morisot", Set("Le berceau", "Femme à sa toilette"))
         for {
           (fridaId, _)  <- painters.persistNewAggregateFromEvent(PainterEvent.Born(frida.name))
-          _             <- ZIO.foreach(frida.paintings.map(PainterEvent.PaintingPainted))(painters.persist(fridaId))
+          _             <- ZIO.foreach(frida.paintings.map(PainterEvent.PaintingPainted.apply))(painters.persist(fridaId))
           (bertheId, _) <- painters.persistNewAggregateFromEvent(PainterEvent.Born(berthe.name))
-          _             <- ZIO.foreach(berthe.paintings.map(PainterEvent.PaintingPainted))(painters.persist(bertheId))
+          _             <- ZIO.foreach(berthe.paintings.map(PainterEvent.PaintingPainted.apply))(painters.persist(bertheId))
           all           <- painters.readAll.runCollect
         } yield assert(all)(hasSubset(Set(fridaId -> frida, bertheId -> berthe)))
       },

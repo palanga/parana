@@ -2,7 +2,7 @@ package palanga.parana
 
 object model {
 
-  case class Painter private (name: Name, paintings: Set[Painting] = Set.empty) {
+  case class Painter private[parana] (name: Name, paintings: Set[Painting] = Set.empty) {
 
     def steal(painter: Painter)(painting: Painting): Either[Throwable, Painter] =
       for {

@@ -1,7 +1,7 @@
 package palanga.parana
 
 import palanga.parana.journal.Journal
-import zio._
+import zio.*
 import zio.stream.{ Stream, ZStream }
 
 import java.util.{ NoSuchElementException, UUID }
@@ -23,7 +23,7 @@ import java.util.{ NoSuchElementException, UUID }
  */
 object EventSource {
 
-  type EventSource[A, Ev] = Has[Service[A, Ev]]
+  type EventSource[A, Ev] = Service[A, Ev]
 
   def of[A, Ev](implicit aTag: Tag[A], eTag: Tag[Ev]): EventSourceOf[A, Ev] = new EventSourceOf[A, Ev]()
 
@@ -42,14 +42,17 @@ object EventSource {
    * }
    * }}}
    *
-   * @param reduce The function used to recover an aggregate from events
-   * @tparam A The type of the aggregate
-   * @tparam Ev The type of the event
+   * @param reduce
+   *   The function used to recover an aggregate from events
+   * @tparam A
+   *   The type of the aggregate
+   * @tparam Ev
+   *   The type of the event
    */
   def live[A, Ev](
     reduce: Reducer[A, Ev]
   )(implicit atag: Tag[A], etag: Tag[Ev]): ZLayer[Journal[Ev], Nothing, EventSource[A, Ev]] =
-    ZIO.environment[Journal[Ev]].map(j => EventSource(j.get, reduce)).toLayer
+    ZLayer.apply(ZIO.environment[Journal[Ev]].map(j => EventSource(j.get, reduce)))
 
   /**
    * Consider using [[live]] instead to construct a ZLayer.
@@ -60,25 +63,25 @@ object EventSource {
   final class EventSourceOf[A, Ev](implicit aTag: Tag[A], eTag: Tag[Ev]) {
 
     def persistNewAggregateFromEvent(event: Ev): ZIO[EventSource[A, Ev], Throwable, (AggregateId, A)] =
-      ZIO.accessM(_.get.persistNewAggregateFromEvent(event))
+      ZIO.environmentWithZIO(_.get.persistNewAggregateFromEvent(event))
 
     def persist(uuid: AggregateId)(event: Ev): ZIO[EventSource[A, Ev], Throwable, A] =
-      ZIO.accessM(_.get.persist(uuid)(event))
+      ZIO.environmentWithZIO(_.get.persist(uuid)(event))
 
     def persistEither(uuid: AggregateId)(command: A => Either[Throwable, Ev]): ZIO[EventSource[A, Ev], Throwable, A] =
-      ZIO.accessM(_.get.persistEither(uuid)(command))
+      ZIO.environmentWithZIO(_.get.persistEither(uuid)(command))
 
     def read(uuid: AggregateId): ZIO[EventSource[A, Ev], Throwable, A] =
-      ZIO.accessM(_.get.read(uuid))
+      ZIO.environmentWithZIO(_.get.read(uuid))
 
     def readOption(uuid: AggregateId): ZIO[EventSource[A, Ev], Throwable, Option[A]] =
-      ZIO.accessM(_.get.readOption(uuid))
+      ZIO.environmentWithZIO(_.get.readOption(uuid))
 
     def readAll: ZStream[EventSource[A, Ev], Throwable, (AggregateId, A)] =
-      ZStream.accessStream(_.get.readAll)
+      ZStream.environmentWithStream(_.get.readAll)
 
     def events(uuid: AggregateId): ZStream[EventSource[A, Ev], Throwable, Ev] =
-      ZStream.accessStream(_.get.events(uuid))
+      ZStream.environmentWithStream(_.get.events(uuid))
 
   }
 
@@ -99,28 +102,28 @@ final class EventSourceLive[A, Ev] private[parana] (journal: Journal.Service[Ev]
 
   override def persistNewAggregateFromEvent(event: Ev): Task[(AggregateId, A)] =
     for {
-      a    <- ZIO fromEither reduce(None, event)
-      uuid <- ZIO effect UUID.randomUUID()
+      a    <- ZIO.fromEither(reduce(None, event))
+      uuid <- ZIO.attempt(UUID.randomUUID())
       _    <- journal.write(uuid, event)
     } yield uuid -> a
 
-  override def persist(uuid: AggregateId)(event: Ev): Task[A]                  =
+  override def persist(uuid: AggregateId)(event: Ev): Task[A] =
     for {
       maybeA <- readOption(uuid)
-      newA   <- ZIO fromEither reduce(maybeA, event)
-      _      <- journal.write(uuid, event) when !(maybeA contains newA)
+      newA   <- ZIO.fromEither(reduce(maybeA, event))
+      _      <- journal.write(uuid, event).when(!(maybeA contains newA))
     } yield newA
 
   override def persistEither(uuid: AggregateId)(command: A => Either[Throwable, Ev]): Task[A] =
     for {
       maybeA <- readOption(uuid)
-      event  <- maybeA.fold(noSuchElement(uuid))(ZIO fromEither command(_))
-      newA   <- ZIO fromEither reduce(maybeA, event)
-      _      <- journal.write(uuid, event) when !(maybeA contains newA)
+      event  <- maybeA.fold(noSuchElement(uuid))(a => ZIO.fromEither(command(a)))
+      newA   <- ZIO.fromEither(reduce(maybeA, event))
+      _      <- journal.write(uuid, event).when(!(maybeA contains newA))
     } yield newA
 
   private def noSuchElement(uuid: AggregateId): IO[Throwable, Ev] =
-    ZIO fail new NoSuchElementException(s"$uuid")
+    ZIO.fail(new NoSuchElementException(s"$uuid"))
 
   override def read(uuid: AggregateId): Task[A] =
     readOption(uuid).someOrFail(new NoSuchElementException(s"$uuid"))
@@ -128,15 +131,15 @@ final class EventSourceLive[A, Ev] private[parana] (journal: Journal.Service[Ev]
   override def readOption(uuid: AggregateId): Task[Option[A]] =
     journal
       .read(uuid)
-      .fold(zero)(reduceState)
-      .flatMap(ZIO fromEither _)
+      .runFold(zero)(reduceState)
+      .flatMap(ZIO.fromEither(_))
 
-  override def readAll: Stream[Throwable, (AggregateId, A)]     =
+  override def readAll: Stream[Throwable, (AggregateId, A)] =
     journal.all.map { case (uuid, events) => events.foldLeft(zero)(reduceState).map(uuid -> _) }
-      .mapM(ZIO fromEither _)
+      .mapZIO(ZIO.fromEither(_))
       .collect { case (uuid, Some(a)) => uuid -> a }
 
-  override def events(uuid: AggregateId): Stream[Throwable, Ev] = journal read uuid
+  override def events(uuid: AggregateId): Stream[Throwable, Ev] = journal.read(uuid)
 
   private val zero: Either[Throwable, Option[A]] = Right(None)
 

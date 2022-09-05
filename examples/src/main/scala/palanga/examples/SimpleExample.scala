@@ -1,15 +1,16 @@
 package palanga.examples
 
 import palanga.parana.EventSource.EventSource
-import palanga.parana.{ journal, AggregateId, EventSource }
-import zio.{ Task, ZIO }
+import palanga.parana.{AggregateId, EventSource, journal}
+import zio.json.{JsonDecoder, JsonEncoder}
+import zio.*
 
 import java.util.UUID
 
 object SimpleExample {
 
   // We will model painters and paintings.
-  case class Painter private (name: Name, paintings: Set[Painting]) {
+  case class Painter(name: Name, paintings: Set[Painting]) {
     def addPaintings(paintings: Set[Painting]): Painter = copy(paintings = this.paintings ++ paintings)
   }
 
@@ -39,23 +40,23 @@ object SimpleExample {
     name: Name,
     paintings: Set[Painting] = Set.empty,
   ): ZIO[EventSource[Painter, PainterEvent], Throwable, (AggregateId, Painter)] =
-    painters persistNewAggregateFromEvent PainterEvent.Created(name, paintings)
+    painters.persistNewAggregateFromEvent(PainterEvent.Created(name, paintings))
 
   def getPainter(uuid: UUID): ZIO[EventSource[Painter, PainterEvent], Throwable, Painter] =
-    painters read uuid
+    painters.read(uuid)
 
   def addPaintings(uuid: UUID, paintings: Set[Painting]): ZIO[EventSource[Painter, PainterEvent], Throwable, Painter] =
     painters.persist(uuid)(PainterEvent.PaintingsAdded(paintings))
 
   // Create our dependencies.
-  val inMemoryLayer = journal.inMemory[PainterEvent].toLayer >>> EventSource.live(reduce)
+  val inMemoryLayer = ZLayer.apply(journal.inMemory[PainterEvent]) >>> EventSource.live(reduce)
 
   // Providing `appLayer` eliminates all the dependencies.
   val painterIO: Task[(AggregateId, Painter)] = createPainter("Remedios Varo").provideLayer(inMemoryLayer)
 
   // If you want to use a cassandra journal instead you can:
-  implicit val painterEventEncoder = zio.json.DeriveJsonEncoder.gen[PainterEvent]
-  implicit val painterEventDecoder = zio.json.DeriveJsonDecoder.gen[PainterEvent]
+  given painterEventEncoder: JsonEncoder[PainterEvent] = zio.json.DeriveJsonEncoder.gen[PainterEvent]
+  given painterEventDecoder: JsonDecoder[PainterEvent] = zio.json.DeriveJsonDecoder.gen[PainterEvent]
   val cassandraLayer               = journal.cassandra.json.live[PainterEvent] >>> EventSource.live(reduce)
 
   // Type aliases for convenience.

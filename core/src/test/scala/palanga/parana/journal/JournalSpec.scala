@@ -2,9 +2,9 @@ package palanga.parana.journal
 
 import palanga.parana.events.PainterEvent
 import palanga.parana.{ journal, AggregateId }
-import zio.test.Assertion._
-import zio.test._
-import zio.{ Has, Queue, ZIO }
+import zio.test.Assertion.*
+import zio.test.*
+import zio.{ Queue, ZIO, ZLayer }
 
 import java.util.UUID
 
@@ -12,7 +12,7 @@ object JournalSpec {
 
   val testSuite =
     suite("a journal")(
-      testM("can have a projection that require dependencies") {
+      test("can have a projection that require dependencies") {
 
         val journalDecorator =
           journal
@@ -24,13 +24,13 @@ object JournalSpec {
         val event = PainterEvent.Born("Tarsila do Amaral")
 
         (for {
-          _        <- ZIO.accessM[Journal[PainterEvent]](_.get.write(id, event))
-          dequeued <- ZIO.accessM[Has[Queue[(AggregateId, PainterEvent)]]](_.get.take)
+          _        <- ZIO.environmentWithZIO[Journal[PainterEvent]](_.get.write(id, event))
+          dequeued <- ZIO.environmentWithZIO[Queue[(AggregateId, PainterEvent)]](_.get.take)
         } yield assert(dequeued)(equalTo(id -> event)))
           .provideSomeLayer(journalDecorator)
 
       },
-      testM("can have multiple sequential projections") {
+      test("can have multiple sequential projections") {
 
         val journalDecorator =
           journal
@@ -43,14 +43,14 @@ object JournalSpec {
         val event = PainterEvent.Born("Remedios Varo")
 
         (for {
-          _              <- ZIO.accessM[Journal[PainterEvent]](_.get.write(id, event))
-          dequeuedEvent  <- ZIO.accessM[Has[Queue[(AggregateId, PainterEvent)]]](_.get.take)
-          dequeuedString <- ZIO.accessM[Has[Queue[String]]](_.get.take)
+          _              <- ZIO.environmentWithZIO[Journal[PainterEvent]](_.get.write(id, event))
+          dequeuedEvent  <- ZIO.environmentWithZIO[Queue[(AggregateId, PainterEvent)]](_.get.take)
+          dequeuedString <- ZIO.environmentWithZIO[Queue[String]](_.get.take)
         } yield assert(dequeuedEvent)(equalTo(id -> event)) && assert(dequeuedString)(equalTo(event.toString)))
           .provideSomeLayer(journalDecorator)
 
       },
-      testM("can have multiple parallel projections") {
+      test("can have multiple parallel projections") {
 
         val journalDecorator =
           journal
@@ -63,14 +63,14 @@ object JournalSpec {
         val event = PainterEvent.Born("Frida Kahlo")
 
         (for {
-          _              <- ZIO.accessM[Journal[PainterEvent]](_.get.write(id, event))
-          dequeuedEvent  <- ZIO.accessM[Has[Queue[(AggregateId, PainterEvent)]]](_.get.take)
-          dequeuedString <- ZIO.accessM[Has[Queue[String]]](_.get.take)
+          _              <- ZIO.serviceWithZIO[Journal[PainterEvent]](_.write(id, event))
+          dequeuedEvent  <- ZIO.serviceWithZIO[Queue[(AggregateId, PainterEvent)]](_.take)
+          dequeuedString <- ZIO.serviceWithZIO[Queue[String]](_.take)
         } yield assert(dequeuedEvent)(equalTo(id -> event)) && assert(dequeuedString)(equalTo(event.toString)))
           .provideSomeLayer(journalDecorator)
 
       },
-      testM("can be decorated") {
+      test("can be decorated") {
 
         val journalDecorator =
           journal
@@ -84,21 +84,22 @@ object JournalSpec {
         val event = PainterEvent.Born("Dorothea Tanning")
 
         (for {
-          _              <- ZIO.accessM[Journal[PainterEvent]](_.get.write(id, event))
-          dequeuedEvent  <- ZIO.accessM[Has[Queue[(AggregateId, PainterEvent)]]](_.get.take)
-          dequeuedString <- ZIO.accessM[Has[Queue[String]]](_.get.take)
+          _              <- ZIO.environmentWithZIO[Journal[PainterEvent]](_.get.write(id, event))
+          dequeuedEvent  <- ZIO.environmentWithZIO[Queue[(AggregateId, PainterEvent)]](_.get.take)
+          dequeuedString <- ZIO.environmentWithZIO[Queue[String]](_.get.take)
         } yield assert(dequeuedEvent)(equalTo(id -> event)) && assert(dequeuedString)(equalTo(event.toString)))
-          .provideSomeLayer(decoratedJournalInMemory.toLayer)
+          .provideSomeLayer(ZLayer.apply(decoratedJournalInMemory))
 
       },
     ).provideSomeLayer[Journal[PainterEvent]](queuesLayer)
 
   private def projectToQueue(id: AggregateId, event: PainterEvent) =
-    ZIO.accessM[Has[Queue[(AggregateId, PainterEvent)]]](_.get.offer(id, event))
+    ZIO.environmentWithZIO[Queue[(AggregateId, PainterEvent)]](_.get.offer(id, event))
 
   private def projectToStringQueue(id: AggregateId, event: PainterEvent) =
-    ZIO.accessM[Has[Queue[String]]](_.get.offer(event.toString))
+    ZIO.environmentWithZIO[Queue[String]](_.get.offer(event.toString))
 
-  private def queuesLayer = Queue.unbounded[(AggregateId, PainterEvent)].toLayer ++ Queue.unbounded[String].toLayer
+  private def queuesLayer =
+    ZLayer.apply(Queue.unbounded[(AggregateId, PainterEvent)]) ++ ZLayer.apply(Queue.unbounded[String])
 
 }
