@@ -1,6 +1,6 @@
 package palanga.parana
 
-import palanga.parana.EventSource.EventSource
+import palanga.parana.EventSource
 import palanga.parana.events.{ painters, PainterEvent }
 import palanga.parana.model.Painter
 import zio.ZIO

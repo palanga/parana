@@ -8,6 +8,16 @@ import java.util.{ NoSuchElementException, UUID }
 
 type Reducer[A, Ev] = (Option[A], Ev) => Either[Throwable, A]
 
+trait EventSource[A, Ev] {
+  def persistNewAggregateFromEvent(event: Ev): Task[(AggregateId, A)]
+  def persist(uuid: AggregateId)(event: Ev): Task[A]
+  def persistEither(uuid: AggregateId)(command: A => Either[Throwable, Ev]): Task[A]
+  def read(uuid: AggregateId): Task[A]
+  def readOption(uuid: AggregateId): Task[Option[A]]
+  def readAll: Stream[Throwable, (AggregateId, A)]
+  def events(uuid: AggregateId): Stream[Throwable, Ev]
+}
+
 /**
  * Example usage:
  * {{{
@@ -24,8 +34,6 @@ type Reducer[A, Ev] = (Option[A], Ev) => Either[Throwable, A]
  * }}}
  */
 object EventSource {
-
-  type EventSource[A, Ev] = Service[A, Ev]
 
   def of[A, Ev](implicit aTag: Tag[A], eTag: Tag[Ev]): EventSourceOf[A, Ev] = new EventSourceOf[A, Ev]()
 
@@ -59,7 +67,7 @@ object EventSource {
   /**
    * Consider using [[live]] instead to construct a ZLayer.
    */
-  def apply[A, Ev](journal: Journal[Ev], reduce: Reducer[A, Ev]): EventSource.Service[A, Ev] =
+  def apply[A, Ev](journal: Journal[Ev], reduce: Reducer[A, Ev]): EventSource[A, Ev] =
     new EventSourceLive(journal, reduce)
 
   final class EventSourceOf[A, Ev](implicit aTag: Tag[A], eTag: Tag[Ev]) {
@@ -87,20 +95,10 @@ object EventSource {
 
   }
 
-  trait Service[A, Ev] {
-    def persistNewAggregateFromEvent(event: Ev): Task[(AggregateId, A)]
-    def persist(uuid: AggregateId)(event: Ev): Task[A]
-    def persistEither(uuid: AggregateId)(command: A => Either[Throwable, Ev]): Task[A]
-    def read(uuid: AggregateId): Task[A]
-    def readOption(uuid: AggregateId): Task[Option[A]]
-    def readAll: Stream[Throwable, (AggregateId, A)]
-    def events(uuid: AggregateId): Stream[Throwable, Ev]
-  }
-
 }
 
 final class EventSourceLive[A, Ev] private[parana] (journal: Journal[Ev], reduce: Reducer[A, Ev])
-    extends EventSource.Service[A, Ev] {
+    extends EventSource[A, Ev] {
 
   override def persistNewAggregateFromEvent(event: Ev): Task[(AggregateId, A)] =
     for {

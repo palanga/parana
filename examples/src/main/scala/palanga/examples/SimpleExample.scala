@@ -1,6 +1,6 @@
 package palanga.examples
 
-import palanga.parana.EventSource.EventSource
+import palanga.parana.EventSource
 import palanga.parana.*
 import palanga.parana.types.*
 import zio.*
