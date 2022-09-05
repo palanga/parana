@@ -2,6 +2,7 @@ package palanga.examples
 
 import palanga.parana.EventSource.EventSource
 import palanga.parana.*
+import palanga.parana.types.*
 import zio.*
 import zio.json.*
 
@@ -49,7 +50,7 @@ object SimpleExample {
     painters.persist(uuid)(PainterEvent.PaintingsAdded(paintings))
 
   // Create our dependencies.
-  val inMemoryLayer = ZLayer.apply(journal.inMemory[PainterEvent]) >>> EventSource.live(reduce)
+  val inMemoryLayer = ZLayer.apply(Journal.inMemory[PainterEvent]) >>> EventSource.live(reduce)
 
   // If you want to use a cassandra journal instead you can:
   given JsonCodec[PainterEvent] = DeriveJsonCodec.gen[PainterEvent]

@@ -1,8 +1,9 @@
 package palanga.parana.journal
 
+import palanga.parana.Journal
 import palanga.parana.journal.cassandra.CassandraJournal.Codec
-import palanga.zio.cassandra.{ CassandraException, ZCqlSession }
-import zio.{ Tag, ZLayer }
+import palanga.zio.cassandra.{CassandraException, ZCqlSession}
+import zio.{Tag, ZLayer}
 
 package object cassandra {
 

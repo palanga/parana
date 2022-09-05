@@ -1,9 +1,10 @@
-package palanga.parana.journal
+package palanga.parana
 
+import palanga.parana.*
+import palanga.parana.types.*
 import palanga.parana.events.PainterEvent
-import palanga.parana.{ journal, AggregateId }
-import zio.test.Assertion.*
 import zio.test.*
+import zio.test.Assertion.*
 import zio.{ Queue, ZIO, ZLayer }
 
 import java.util.UUID
@@ -15,7 +16,7 @@ object JournalSpec {
       test("can have a projection that require dependencies") {
 
         val journalDecorator =
-          journal
+          Journal
             .decorator[PainterEvent]
             .tap(projectToQueue)
             .toLayer
@@ -33,7 +34,7 @@ object JournalSpec {
       test("can have multiple sequential projections") {
 
         val journalDecorator =
-          journal
+          Journal
             .decorator[PainterEvent]
             .tap(projectToQueue)
             .tap(projectToStringQueue)
@@ -53,7 +54,7 @@ object JournalSpec {
       test("can have multiple parallel projections") {
 
         val journalDecorator =
-          journal
+          Journal
             .decorator[PainterEvent]
             .tap(projectToQueue)
             .tapPar(projectToStringQueue)
@@ -73,12 +74,12 @@ object JournalSpec {
       test("can be decorated") {
 
         val journalDecorator =
-          journal
+          Journal
             .decorator[PainterEvent]
             .tap(projectToQueue)
             .tap(projectToStringQueue)
 
-        val decoratedJournalInMemory = journalDecorator.decorate(journal.inMemory)
+        val decoratedJournalInMemory = journalDecorator.decorate(Journal.inMemory)
 
         val id    = UUID.randomUUID()
         val event = PainterEvent.Born("Dorothea Tanning")

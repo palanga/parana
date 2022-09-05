@@ -1,9 +1,8 @@
 package palanga.parana.journal.cassandra
 
 import com.datastax.oss.driver.api.core.uuid.Uuids
-import palanga.parana.AggregateId
-import palanga.parana.journal.Journal
-import palanga.parana.journal.Journal.Service
+import palanga.parana.Journal
+import palanga.parana.types.*
 import palanga.parana.journal.cassandra.CassandraJournal.Codec
 import palanga.zio.cassandra.ZStatement.StringOps
 import palanga.zio.cassandra.{ CassandraException, ZCqlSession }
@@ -18,7 +17,7 @@ object CassandraJournal {
 
   def make[Ev](
     shouldCreateTable: Boolean = false
-  )(implicit codec: Codec[Ev], etag: Tag[Ev]): ZIO[ZCqlSession, CassandraException, Journal.Service[Ev]] = {
+  )(implicit codec: Codec[Ev], etag: Tag[Ev]): ZIO[ZCqlSession, CassandraException, Journal[Ev]] = {
 
     def tableName = etag.tag.longName.replace('.', '_').replace('$', '_')
 
@@ -52,7 +51,7 @@ final private[parana] class CassandraJournal[Ev](
   private val session: ZCqlSession,
   private val tableName: String,
 )(implicit codec: Codec[Ev], etag: Tag[Ev])
-    extends Service[Ev] {
+    extends Journal[Ev] {
 
   private val selectStatement =
     s"SELECT event FROM $tableName WHERE id=?;".toStatement

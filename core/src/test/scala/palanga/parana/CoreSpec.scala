@@ -1,7 +1,6 @@
 package palanga.parana
 
 import palanga.parana.events.{ reduce, PainterEvent }
-import palanga.parana.journal.JournalSpec
 import zio.*
 import zio.test.*
 
@@ -17,8 +16,8 @@ object CoreSpec extends ZIOSpecDefault {
     )
 
   private val dependencies =
-    (ZLayer.apply(journal.inMemory[PainterEvent]) >>> EventSource.live(reduce)) ++ ZLayer.apply(
-      journal.inMemory[PainterEvent]
+    (ZLayer.apply(Journal.inMemory[PainterEvent]) >>> EventSource.live(reduce)) ++ ZLayer.apply(
+      Journal.inMemory[PainterEvent]
     )
 
 }

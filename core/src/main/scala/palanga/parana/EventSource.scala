@@ -1,10 +1,12 @@
 package palanga.parana
 
-import palanga.parana.journal.Journal
+import palanga.parana.types.*
 import zio.*
-import zio.stream.{ Stream, ZStream }
+import zio.stream.*
 
 import java.util.{ NoSuchElementException, UUID }
+
+type Reducer[A, Ev] = (Option[A], Ev) => Either[Throwable, A]
 
 /**
  * Example usage:
@@ -57,7 +59,7 @@ object EventSource {
   /**
    * Consider using [[live]] instead to construct a ZLayer.
    */
-  def apply[A, Ev](journal: Journal.Service[Ev], reduce: Reducer[A, Ev]): EventSource.Service[A, Ev] =
+  def apply[A, Ev](journal: Journal[Ev], reduce: Reducer[A, Ev]): EventSource.Service[A, Ev] =
     new EventSourceLive(journal, reduce)
 
   final class EventSourceOf[A, Ev](implicit aTag: Tag[A], eTag: Tag[Ev]) {
@@ -97,13 +99,13 @@ object EventSource {
 
 }
 
-final class EventSourceLive[A, Ev] private[parana] (journal: Journal.Service[Ev], reduce: Reducer[A, Ev])
+final class EventSourceLive[A, Ev] private[parana] (journal: Journal[Ev], reduce: Reducer[A, Ev])
     extends EventSource.Service[A, Ev] {
 
   override def persistNewAggregateFromEvent(event: Ev): Task[(AggregateId, A)] =
     for {
       a    <- ZIO.fromEither(reduce(None, event))
-      uuid <- ZIO.attempt(UUID.randomUUID())
+      uuid <- ZIO.attempt(UUID.randomUUID()) // TODO ZIO random uuid
       _    <- journal.write(uuid, event)
     } yield uuid -> a
 

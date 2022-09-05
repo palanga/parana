@@ -11,8 +11,8 @@ inThisBuild(
     organization           := "io.github.palanga",
     homepage               := Some(url("https://github.com/palanga/zio-cassandra")),
     licenses               := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
-    resolvers ++= Resolver.sonatypeOssRepos("public"),
-    resolvers ++= Resolver.sonatypeOssRepos("snapshots"),
+    resolvers += "Sonatype OSS Releases" at "https://s01.oss.sonatype.org/content/repositories/releases",
+    resolvers += "Sonatype OSS Snapshots" at "https://s01.oss.sonatype.org/content/repositories/snapshots",
     developers             := List(
       Developer(
         "palanga",

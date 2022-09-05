@@ -1,6 +1,6 @@
 package palanga.parana.journal.cassandra
 
-import palanga.parana.journal.Journal
+import palanga.parana.Journal
 import palanga.parana.journal.cassandra.CassandraJournal.Codec
 import palanga.zio.cassandra.{ CassandraException, ZCqlSession }
 import zio.json.*
