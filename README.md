@@ -1,19 +1,32 @@
 paraná
 ======
 
+[![Release Artifacts][Badge-SonatypeReleases]][Link-SonatypeReleases]
+[![Snapshot Artifacts][Badge-SonatypeSnapshots]][Link-SonatypeSnapshots]
+
+[Link-SonatypeReleases]: https://s01.oss.sonatype.org/content/repositories/releases/io/github/palanga/parana_3/ "Sonatype Releases"
+[Badge-SonatypeReleases]: https://img.shields.io/nexus/r/https/s01.oss.sonatype.org/io.github.palanga/parana_3.svg "Sonatype Releases"
+[Link-SonatypeSnapshots]: https://s01.oss.sonatype.org/content/repositories/snapshots/io/github/palanga/parana_3/ "Sonatype Snapshots"
+[Badge-SonatypeSnapshots]: https://img.shields.io/nexus/s/https/s01.oss.sonatype.org/io.github.palanga/parana_3.svg "Sonatype Snapshots"
+
 An event sourcing library on top of ZIO
 ---------------------------------------
 
 Installation
 ------------
 
-Add this to your `build.sbt` file
+We publish to maven central so you just have to add this to your `build.sbt` file:
 
 ```sbt
-resolvers += "Artifactory" at "https://palanga.jfrog.io/artifactory/maven/"
-libraryDependencies += "dev.palanga" %% "parana-core" % "version"
-libraryDependencies += "dev.palanga" %% "parana-journal-cassandra-json" % "version"
+libraryDependencies += "dev.palanga" %% "parana" % "version"
+```
 
+We have a journal implementation with zio-cassandra and the same journal with json codec using zio-json.
+So you can use one of both:
+
+```sbt
+libraryDependencies += "dev.palanga" %% "parana-journal-cassandra" % "version"
+libraryDependencies += "dev.palanga" %% "parana-journal-cassandra-json" % "version"
 ```
 
 Usage
@@ -27,9 +40,19 @@ import zio.{ Task, ZIO }
 import java.util.UUID
 
 object SimpleExample {
+package palanga.examples
+
+import palanga.parana.EventSource.EventSource
+import palanga.parana.*
+import zio.*
+import zio.json.*
+
+import java.util.UUID
+
+object SimpleExample {
 
   // We will model painters and paintings.
-  case class Painter private (name: Name, paintings: Set[Painting]) {
+  case class Painter(name: Name, paintings: Set[Painting]) {
     def addPaintings(paintings: Set[Painting]): Painter = copy(paintings = this.paintings ++ paintings)
   }
 
@@ -56,31 +79,29 @@ object SimpleExample {
 
   // Then we can use EventSource methods like this (there are more).
   def createPainter(
-                     name: Name,
-                     paintings: Set[Painting] = Set.empty,
-                   ): ZIO[EventSource[Painter, PainterEvent], Throwable, (AggregateId, Painter)] =
-    painters persistNewAggregateFromEvent PainterEvent.Created(name, paintings)
+    name: Name,
+    paintings: Set[Painting] = Set.empty,
+  ): ZIO[EventSource[Painter, PainterEvent], Throwable, (AggregateId, Painter)] =
+    painters.persistNewAggregateFromEvent(PainterEvent.Created(name, paintings))
 
   def getPainter(uuid: UUID): ZIO[EventSource[Painter, PainterEvent], Throwable, Painter] =
-    painters read uuid
+    painters.read(uuid)
 
   def addPaintings(uuid: UUID, paintings: Set[Painting]): ZIO[EventSource[Painter, PainterEvent], Throwable, Painter] =
     painters.persist(uuid)(PainterEvent.PaintingsAdded(paintings))
 
   // Create our dependencies.
-  val inMemoryLayer = journal.inMemory[PainterEvent].toLayer >>> EventSource.live(reduce)
-
-  // Providing `appLayer` eliminates all the dependencies.
-  val painterIO: Task[(AggregateId, Painter)] = createPainter("Remedios Varo").provideLayer(inMemoryLayer)
+  val inMemoryLayer = ZLayer.apply(journal.inMemory[PainterEvent]) >>> EventSource.live(reduce)
 
   // If you want to use a cassandra journal instead you can:
-  implicit val painterEventEncoder = zio.json.DeriveJsonEncoder.gen[PainterEvent]
-  implicit val painterEventDecoder = zio.json.DeriveJsonDecoder.gen[PainterEvent]
-  val cassandraLayer               = journal.cassandra.json.live[PainterEvent] >>> EventSource.live(reduce)
+  given JsonCodec[PainterEvent] = DeriveJsonCodec.gen[PainterEvent]
+  val cassandraLayer            = journal.cassandra.json.live[PainterEvent] >>> EventSource.live(reduce)
 
-  // Type aliases for convenience.
   type Name     = String
   type Painting = String
+
+}
+
 
 }
 
@@ -89,4 +110,4 @@ object SimpleExample {
 Testing:
 --------
 
-* To run tests: `./sbt` then `test`
+* To run tests: `sbt test`

@@ -1,9 +1,9 @@
 package palanga.examples
 
 import palanga.parana.EventSource.EventSource
-import palanga.parana.{AggregateId, EventSource, journal}
-import zio.json.{JsonDecoder, JsonEncoder}
+import palanga.parana.*
 import zio.*
+import zio.json.*
 
 import java.util.UUID
 
@@ -51,15 +51,10 @@ object SimpleExample {
   // Create our dependencies.
   val inMemoryLayer = ZLayer.apply(journal.inMemory[PainterEvent]) >>> EventSource.live(reduce)
 
-  // Providing `appLayer` eliminates all the dependencies.
-  val painterIO: Task[(AggregateId, Painter)] = createPainter("Remedios Varo").provideLayer(inMemoryLayer)
-
   // If you want to use a cassandra journal instead you can:
-  given painterEventEncoder: JsonEncoder[PainterEvent] = zio.json.DeriveJsonEncoder.gen[PainterEvent]
-  given painterEventDecoder: JsonDecoder[PainterEvent] = zio.json.DeriveJsonDecoder.gen[PainterEvent]
-  val cassandraLayer               = journal.cassandra.json.live[PainterEvent] >>> EventSource.live(reduce)
+  given JsonCodec[PainterEvent] = DeriveJsonCodec.gen[PainterEvent]
+  val cassandraLayer            = journal.cassandra.json.live[PainterEvent] >>> EventSource.live(reduce)
 
-  // Type aliases for convenience.
   type Name     = String
   type Painting = String
 
