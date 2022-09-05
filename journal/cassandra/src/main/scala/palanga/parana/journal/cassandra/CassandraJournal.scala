@@ -20,7 +20,7 @@ object CassandraJournal {
     shouldCreateTable: Boolean = false
   )(implicit codec: Codec[Ev], etag: Tag[Ev]): ZIO[ZCqlSession, CassandraException, Journal.Service[Ev]] = {
 
-    def tableName = etag.tag.longName.replace('.', '_')
+    def tableName = etag.tag.longName.replace('.', '_').replace('$', '_')
 
     def createTable =
       s"""
