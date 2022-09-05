@@ -2,7 +2,7 @@ name := "parana"
 
 val MAIN_SCALA            = "3.1.3"
 val ALL_SCALA             = Seq(MAIN_SCALA)
-val ZIO_CASSANDRA_VERSION = "0.8.0"
+val ZIO_CASSANDRA_VERSION = "0.9.0"
 val ZIO_JSON_VERSION      = "0.3.0-RC11"
 val ZIO_VERSION           = "2.0.1"
 
@@ -11,6 +11,8 @@ inThisBuild(
     organization           := "io.github.palanga",
     homepage               := Some(url("https://github.com/palanga/zio-cassandra")),
     licenses               := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
+    resolvers ++= Resolver.sonatypeOssRepos("public"),
+    resolvers ++= Resolver.sonatypeOssRepos("snapshots"),
     developers             := List(
       Developer(
         "palanga",

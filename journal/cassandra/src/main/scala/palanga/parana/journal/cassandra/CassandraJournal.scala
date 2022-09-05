@@ -61,12 +61,11 @@ final private[parana] class CassandraJournal[Ev](
     s"INSERT INTO $tableName (id, event_id, event) VALUES (?,?,?);".toStatement
 
   private val selectAllIds =
-    s"SELECT DISTINCT id FROM $tableName;".toStatement.decode(_.getUuid("id"))
+    s"SELECT DISTINCT id FROM $tableName;".toStatement.decodeAttempt(_.getUuid("id"))
 
-  // TODO decode should be safe in zio-cassandra
   override def read(id: UUID): ZStream[Any, CassandraException, Ev] =
     session
-      .stream(selectStatement.bind(id).decode(row => codec.decode(row.getString("event")).fold(throw _, identity)))
+      .stream(selectStatement.bind(id).decodeAttempt(row => codec.decode(row.getString("event")).fold(throw _, identity)))
       .flattenChunks
 
   override def write(id: AggregateId, event: Ev): ZIO[Any, CassandraException, (AggregateId, Ev)] =
