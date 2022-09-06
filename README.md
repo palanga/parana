@@ -29,6 +29,12 @@ libraryDependencies += "dev.palanga" %% "parana-journal-cassandra" % "version"
 libraryDependencies += "dev.palanga" %% "parana-journal-cassandra-json" % "version"
 ```
 
+To get snapshot releases:
+
+```sbt
+resolvers += "Sonatype OSS Snapshots" at "https://s01.oss.sonatype.org/content/repositories/snapshots",
+```
+
 Usage
 -----
 
