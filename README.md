@@ -18,15 +18,15 @@ Installation
 We publish to maven central so you just have to add this to your `build.sbt` file:
 
 ```sbt
-libraryDependencies += "dev.palanga" %% "parana" % "version"
+libraryDependencies += "dev.palanga" %% "parana" % "0.6.0"
 ```
 
 We have a journal implementation with zio-cassandra and the same journal with json codec using zio-json.
 So you can use one of both:
 
 ```sbt
-libraryDependencies += "dev.palanga" %% "parana-journal-cassandra" % "version"
-libraryDependencies += "dev.palanga" %% "parana-journal-cassandra-json" % "version"
+libraryDependencies += "dev.palanga" %% "parana-journal-cassandra" % "0.6.0"
+libraryDependencies += "dev.palanga" %% "parana-journal-cassandra-json" % "0.6.0"
 ```
 
 To get snapshot releases:
