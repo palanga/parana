@@ -19,7 +19,6 @@ def test[Ev](implicit codec: Codec[Ev], etag: Tag[Ev]): ZLayer[ZCqlSession, Cass
 
 object CassandraJournal {
 
-
   def make[Ev](
     shouldCreateTable: Boolean = false
   )(implicit codec: Codec[Ev], etag: Tag[Ev]): ZIO[ZCqlSession, CassandraException, Journal[Ev]] = {
@@ -69,7 +68,9 @@ final private[parana] class CassandraJournal[Ev](
 
   override def read(id: UUID): ZStream[Any, CassandraException, Ev] =
     session
-      .stream(selectStatement.bind(id).decodeAttempt(row => codec.decode(row.getString("event")).fold(throw _, identity)))
+      .stream(
+        selectStatement.bind(id).decodeAttempt(row => codec.decode(row.getString("event")).fold(throw _, identity))
+      )
       .flattenChunks
 
   override def write(id: AggregateId, event: Ev): ZIO[Any, CassandraException, (AggregateId, Ev)] =
