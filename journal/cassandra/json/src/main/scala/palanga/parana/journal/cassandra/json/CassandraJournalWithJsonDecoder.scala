@@ -1,6 +1,6 @@
 package palanga.parana.journal.cassandra.json
 
-import palanga.parana.Journal
+import palanga.parana.journal.*
 import palanga.parana.journal.cassandra.*
 import palanga.zio.cassandra.*
 import zio.*

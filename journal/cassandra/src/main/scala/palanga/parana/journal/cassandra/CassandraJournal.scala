@@ -1,22 +1,22 @@
 package palanga.parana.journal.cassandra
 
 import com.datastax.oss.driver.api.core.uuid.Uuids
-import palanga.parana.Journal
-import palanga.parana.types.*
+import palanga.parana.journal.*
+import palanga.parana.eventsource.*
 import palanga.zio.cassandra.ZStatement.StringOps
 import palanga.zio.cassandra.{ CassandraException, ZCqlSession }
 import zio.*
 import zio.stream.ZStream
 import palanga.parana.journal.cassandra.Codec
 
-import java.util.UUID
-
 def live[Ev](implicit codec: Codec[Ev], etag: Tag[Ev]): ZLayer[ZCqlSession, CassandraException, Journal[Ev]] =
   CassandraJournal.layer[Ev](shouldCreateTable = false)
 
+// TODO investigate embedded cassandra
 def test[Ev](implicit codec: Codec[Ev], etag: Tag[Ev]): ZLayer[ZCqlSession, CassandraException, Journal[Ev]] =
   CassandraJournal.layer[Ev](shouldCreateTable = true)
 
+// TODO write and read in bulk
 object CassandraJournal {
 
   def make[Ev](
@@ -66,19 +66,19 @@ final private[parana] class CassandraJournal[Ev](
   private val selectAllIds =
     s"SELECT DISTINCT id FROM $tableName;".toStatement.decodeAttempt(_.getUuid("id"))
 
-  override def read(id: UUID): ZStream[Any, CassandraException, Ev] =
+  override def read(id: EntityId): ZStream[Any, CassandraException, Ev] =
     session
       .stream(
         selectStatement.bind(id).decodeAttempt(row => codec.decode(row.getString("event")).fold(throw _, identity))
       )
       .flattenChunks
 
-  override def write(id: AggregateId, event: Ev): ZIO[Any, CassandraException, (AggregateId, Ev)] =
+  override def write(id: EntityId, event: Ev): ZIO[Any, CassandraException, (EntityId, Ev)] =
     session
       .execute(insertStatement.bind(id, Uuids.timeBased(), codec.encode(event))) // TODO time uuids that can be tested
       .as(id -> event)
 
-  override def allIds: ZStream[Any, CassandraException, AggregateId] =
+  override def allIds: ZStream[Any, CassandraException, EntityId] =
     session
       .stream(selectAllIds)
       .flattenChunks

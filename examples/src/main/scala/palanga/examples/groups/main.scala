@@ -1,44 +1,3 @@
-paraná
-======
-
-[![Release Artifacts][Badge-SonatypeReleases]][Link-SonatypeReleases]
-[![Snapshot Artifacts][Badge-SonatypeSnapshots]][Link-SonatypeSnapshots]
-
-[Link-SonatypeReleases]: https://s01.oss.sonatype.org/content/repositories/releases/io/github/palanga/parana_3/ "Sonatype Releases"
-[Badge-SonatypeReleases]: https://img.shields.io/nexus/r/https/s01.oss.sonatype.org/io.github.palanga/parana_3.svg "Sonatype Releases"
-[Link-SonatypeSnapshots]: https://s01.oss.sonatype.org/content/repositories/snapshots/io/github/palanga/parana_3/ "Sonatype Snapshots"
-[Badge-SonatypeSnapshots]: https://img.shields.io/nexus/s/https/s01.oss.sonatype.org/io.github.palanga/parana_3.svg "Sonatype Snapshots"
-
-An event sourcing library on top of ZIO
----------------------------------------
-
-Installation
-------------
-
-We publish to maven central so you just have to add this to your `build.sbt` file:
-
-```sbt
-libraryDependencies += "dev.palanga" %% "parana" % "version"
-```
-
-We have a journal implementation with zio-cassandra and the same journal with json codec using zio-json.
-So you can use one of both:
-
-```sbt
-libraryDependencies += "dev.palanga" %% "parana-journal-cassandra"      % "version"
-libraryDependencies += "dev.palanga" %% "parana-journal-cassandra-json" % "version"
-```
-
-To get snapshot releases:
-
-```sbt
-resolvers += "Sonatype OSS Snapshots" at "https://s01.oss.sonatype.org/content/repositories/snapshots",
-```
-
-A tease:
---------
-
-```scala
 package palanga.examples.groups
 
 import model.*
@@ -102,10 +61,3 @@ object eventsourcing:
       .makeLayer
 
   val inMemoryJournal = InMemoryJournal.makeLayer[Event]
-
-```
-
-Contributing:
--------------
-
-* To run tests: `sbt test`

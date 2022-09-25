@@ -1,10 +1,10 @@
 name := "parana"
 
-val MAIN_SCALA            = "3.1.3"
+val MAIN_SCALA            = "3.2.0"
 val ALL_SCALA             = Seq(MAIN_SCALA)
 val ZIO_CASSANDRA_VERSION = "0.9.0"
-val ZIO_JSON_VERSION      = "0.3.0-RC11"
-val ZIO_VERSION           = "2.0.1"
+val ZIO_JSON_VERSION      = "0.3.0"
+val ZIO_VERSION           = "2.0.2"
 
 inThisBuild(
   List(
@@ -34,32 +34,89 @@ lazy val root =
     .settings(publish / skip := true)
     .aggregate(
       core,
+      core_local,
+      core_remote,
+      journal,
       journal_cassandra,
       journal_cassandra_json,
       examples,
     )
 
 lazy val core =
-  (project in file("core"))
+  (project in file("core") / "common")
     .settings(
-      name           := "parana",
+      name           := "parana-core-common",
+      description    := "An event sourcing library on top of ZIO",
+      publish / skip := true,
+      Test / fork    := true,
+      run / fork     := true,
+      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")), // TODO remove ?
+      libraryDependencies ++= Seq(
+        "dev.zio" %% "zio"          % ZIO_VERSION,
+        "dev.zio" %% "zio-streams"  % ZIO_VERSION,
+        "dev.zio" %% "zio-test"     % ZIO_VERSION % "test", // TODO remove ?
+        "dev.zio" %% "zio-test-sbt" % ZIO_VERSION % "test", // TODO remove ?
+      ),
+      commonSettings,
+    )
+
+lazy val core_local =
+  (project in file("core") / "local")
+    .settings(
+      name           := "parana-core-local",
       description    := "An event sourcing library on top of ZIO",
       Test / fork    := true,
       run / fork     := true,
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
       libraryDependencies ++= Seq(
-        "dev.zio" %% "zio"          % ZIO_VERSION,
-        "dev.zio" %% "zio-streams"  % ZIO_VERSION,
         "dev.zio" %% "zio-test"     % ZIO_VERSION % "test",
         "dev.zio" %% "zio-test-sbt" % ZIO_VERSION % "test",
       ),
       commonSettings,
     )
+    .dependsOn(
+      core % "test->test",
+      journal,
+    )
+
+lazy val core_remote =
+  (project in file("core") / "remote")
+    .settings(
+      name           := "parana-core-remote",
+      description    := "An event sourcing library on top of ZIO",
+      publish / skip := true, // for now
+      Test / fork    := true,
+      run / fork     := true,
+      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
+      libraryDependencies ++= Seq(
+        "dev.zio" %% "zio-test"     % ZIO_VERSION % "test",
+        "dev.zio" %% "zio-test-sbt" % ZIO_VERSION % "test",
+      ),
+      commonSettings,
+    )
+    .dependsOn(core)
+
+lazy val journal =
+  (project in file("journal") / "common")
+    .settings(
+      name           := "parana-journal-common",
+      description    := "An event sourcing library on top of ZIO",
+      Test / fork    := true,
+      run / fork     := true,
+      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
+      libraryDependencies ++= Seq(
+        "dev.zio" %% "zio-test"     % ZIO_VERSION % "test",
+        "dev.zio" %% "zio-test-sbt" % ZIO_VERSION % "test",
+      ),
+      commonSettings,
+    )
+    .dependsOn(core)
 
 lazy val journal_cassandra =
   (project in file("journal/cassandra"))
     .settings(
       name           := "parana-journal-cassandra",
+      publish / skip := true, // for now
       Test / fork    := true,
       run / fork     := true,
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
@@ -68,12 +125,13 @@ lazy val journal_cassandra =
       ),
       commonSettings,
     )
-    .dependsOn(core)
+    .dependsOn(journal)
 
 lazy val journal_cassandra_json =
   (project in file("journal/cassandra/json"))
     .settings(
       name           := "parana-journal-cassandra-json",
+      publish / skip := true, // for now
       Test / fork    := true,
       run / fork     := true,
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
@@ -97,12 +155,14 @@ lazy val examples =
       publish / skip := true,
       Test / fork    := true,
       run / fork     := true,
+      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
+      libraryDependencies ++= Seq(
+        "dev.zio" %% "zio-test"     % ZIO_VERSION,
+        "dev.zio" %% "zio-test-sbt" % ZIO_VERSION,
+      ),
       commonSettings,
     )
-    .dependsOn(
-      core,
-      journal_cassandra_json,
-    )
+    .dependsOn(core_local)
 
 val commonSettings = Def.settings(
   scalaVersion       := MAIN_SCALA,
