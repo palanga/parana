@@ -34,7 +34,7 @@ object SimpleExample {
   }
 
   // Create an event source for our types.
-  val painters = EventSource.of[Painter, PainterEvent]
+  val painters = EventSource.service[Painter, PainterEvent]
 
   // Then we can use EventSource methods like this (there are more).
   def createPainter(
@@ -50,11 +50,11 @@ object SimpleExample {
     painters.persist(uuid)(PainterEvent.PaintingsAdded(paintings))
 
   // Create our dependencies.
-  val inMemoryLayer = ZLayer.apply(Journal.inMemory[PainterEvent]) >>> EventSource.live(reduce)
+  val inMemoryLayer = ZLayer.apply(Journal.inMemory[PainterEvent]) >>> EventSource.makeLayer(reduce)
 
   // If you want to use a cassandra journal instead you can:
   given JsonCodec[PainterEvent] = DeriveJsonCodec.gen[PainterEvent]
-  val cassandraLayer            = journal.cassandra.json.live[PainterEvent] >>> EventSource.live(reduce)
+  val cassandraLayer            = journal.cassandra.json.live[PainterEvent] >>> EventSource.makeLayer(reduce)
 
   type Name     = String
   type Painting = String

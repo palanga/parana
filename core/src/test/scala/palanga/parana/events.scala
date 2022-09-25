@@ -16,6 +16,6 @@ object events {
     case (maybePainter, event)                                   => Left(new Exception(s"Cannot apply event <<$event>> to <<$maybePainter>>"))
   }
 
-  val painters = EventSource.of[Painter, PainterEvent]
+  val painters = EventSource.service[Painter, PainterEvent]
 
 }

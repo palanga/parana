@@ -16,7 +16,7 @@ object CoreSpec extends ZIOSpecDefault {
     )
 
   private val dependencies =
-    (ZLayer.apply(Journal.inMemory[PainterEvent]) >>> EventSource.live(reduce)) ++ ZLayer.apply(
+    (ZLayer.apply(Journal.inMemory[PainterEvent]) >>> EventSource.makeLayer(reduce)) ++ ZLayer.apply(
       Journal.inMemory[PainterEvent]
     )
 

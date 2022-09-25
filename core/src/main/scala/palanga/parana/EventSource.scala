@@ -8,7 +8,7 @@ import java.util.{ NoSuchElementException, UUID }
 
 type Reducer[A, Ev] = (Option[A], Ev) => Either[Throwable, A]
 
-trait EventSource[A, Ev] {
+trait EventSource[A, Ev]:
   def persistNewAggregateFromEvent(event: Ev): Task[(AggregateId, A)]
   def persist(uuid: AggregateId)(event: Ev): Task[A]
   def persistEither(uuid: AggregateId)(command: A => Either[Throwable, Ev]): Task[A]
@@ -16,88 +16,47 @@ trait EventSource[A, Ev] {
   def readOption(uuid: AggregateId): Task[Option[A]]
   def readAll: Stream[Throwable, (AggregateId, A)]
   def events(uuid: AggregateId): Stream[Throwable, Ev]
-}
 
-/**
- * Example usage:
- * {{{
- *
- * val painters = EventSource.of[Painter]
- *
- * val painter = painters.read(painterId)
- *
- * val journalLayer = Journal.inMemory[Painter]
- * val eventSourceLayer = EventSource.live(applyEvent)
- * val appLayer = journalLayer >>> eventSourceLayer
- *
- * val painterWithProvidedDependencies = painter.provideLayer(appLayer)
- * }}}
- */
-object EventSource {
+object EventSource:
 
-  def of[A, Ev](implicit aTag: Tag[A], eTag: Tag[Ev]): EventSourceOf[A, Ev] = new EventSourceOf[A, Ev]()
+  def make[A, Ev](reducer: Reducer[A, Ev])(implicit tag: Tag[Ev]): ZIO[Journal[Ev], Nothing, EventSource[A, Ev]] =
+    for journal <- ZIO.service[Journal[Ev]]
+    yield new EventSourceWithJournal(journal, reducer)
+
+  def makeLayer[A, Ev](
+    reducer: Reducer[A, Ev]
+  )(implicit aTag: Tag[A], eTag: Tag[Ev]): ZLayer[Journal[Ev], Nothing, EventSource[A, Ev]] =
+    ZLayer.fromZIO(make(reducer))
 
   /**
-   * Create a [[ZLayer]] from [[Journal]] to [[EventSource]]
-   *
-   * Example:
-   * {{{
-   * def applyEvent: ApplyEvent[Painter, Event] = {
-   *   case (None, Event.Created(painter))               =>
-   *     Right(painter)
-   *   case (Some(painter), added: Event.PaintingsAdded) =>
-   *     Right(painter.copy(painter.paintings ++ added.paintings))
-   *   case (maybePainter, event)                        =>
-   *     Left(new Exception(s"$maybePainter $event"))
-   * }
-   * }}}
-   *
-   * @param reduce
-   *   The function used to recover an aggregate from events
-   * @tparam A
-   *   The type of the aggregate
-   * @tparam Ev
-   *   The type of the event
+   * Get accessor methods for a specific event source
    */
-  def live[A, Ev](
-    reduce: Reducer[A, Ev]
-  )(implicit atag: Tag[A], etag: Tag[Ev]): ZLayer[Journal[Ev], Nothing, EventSource[A, Ev]] =
-    ZLayer.apply(ZIO.environment[Journal[Ev]].map(j => EventSource(j.get, reduce)))
+  def service[A, Ev](implicit aTag: Tag[A], eTag: Tag[Ev]): EventSourceService[A, Ev] = EventSourceService[A, Ev]()
 
-  /**
-   * Consider using [[live]] instead to construct a ZLayer.
-   */
-  def apply[A, Ev](journal: Journal[Ev], reduce: Reducer[A, Ev]): EventSource[A, Ev] =
-    new EventSourceLive(journal, reduce)
-
-  final class EventSourceOf[A, Ev](implicit aTag: Tag[A], eTag: Tag[Ev]) {
+  final class EventSourceService[A, Ev](implicit aTag: Tag[A], eTag: Tag[Ev]):
 
     def persistNewAggregateFromEvent(event: Ev): ZIO[EventSource[A, Ev], Throwable, (AggregateId, A)] =
-      ZIO.environmentWithZIO(_.get.persistNewAggregateFromEvent(event))
+      ZIO.serviceWithZIO(_.persistNewAggregateFromEvent(event))
 
     def persist(uuid: AggregateId)(event: Ev): ZIO[EventSource[A, Ev], Throwable, A] =
-      ZIO.environmentWithZIO(_.get.persist(uuid)(event))
+      ZIO.serviceWithZIO(_.persist(uuid)(event))
 
     def persistEither(uuid: AggregateId)(command: A => Either[Throwable, Ev]): ZIO[EventSource[A, Ev], Throwable, A] =
-      ZIO.environmentWithZIO(_.get.persistEither(uuid)(command))
+      ZIO.serviceWithZIO(_.persistEither(uuid)(command))
 
     def read(uuid: AggregateId): ZIO[EventSource[A, Ev], Throwable, A] =
-      ZIO.environmentWithZIO(_.get.read(uuid))
+      ZIO.serviceWithZIO(_.read(uuid))
 
     def readOption(uuid: AggregateId): ZIO[EventSource[A, Ev], Throwable, Option[A]] =
-      ZIO.environmentWithZIO(_.get.readOption(uuid))
+      ZIO.serviceWithZIO(_.readOption(uuid))
 
     def readAll: ZStream[EventSource[A, Ev], Throwable, (AggregateId, A)] =
-      ZStream.environmentWithStream(_.get.readAll)
+      ZStream.serviceWithStream(_.readAll)
 
     def events(uuid: AggregateId): ZStream[EventSource[A, Ev], Throwable, Ev] =
-      ZStream.environmentWithStream(_.get.events(uuid))
+      ZStream.serviceWithStream(_.events(uuid))
 
-  }
-
-}
-
-final class EventSourceLive[A, Ev] private[parana] (journal: Journal[Ev], reduce: Reducer[A, Ev])
+final class EventSourceWithJournal[A, Ev] private[parana] (journal: Journal[Ev], reduce: Reducer[A, Ev])
     extends EventSource[A, Ev] {
 
   override def persistNewAggregateFromEvent(event: Ev): Task[(AggregateId, A)] =

@@ -97,6 +97,11 @@ lazy val examples =
       publish / skip := true,
       Test / fork    := true,
       run / fork     := true,
+      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
+      libraryDependencies ++= Seq(
+        "dev.zio" %% "zio-test" % ZIO_VERSION,
+        "dev.zio" %% "zio-test-sbt" % ZIO_VERSION,
+      ),
       commonSettings,
     )
     .dependsOn(

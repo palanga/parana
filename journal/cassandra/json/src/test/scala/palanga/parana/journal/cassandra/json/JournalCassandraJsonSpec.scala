@@ -26,6 +26,6 @@ object JournalCassandraJsonSpec extends ZIOSpecDefault {
     ZLayer.scoped(Live.live(palanga.zio.cassandra.session.auto.openDefault())) >>>
       journal.cassandra.json.test[PainterEvent]
 
-  private val dependencies = (journalLayer >>> EventSource.live(reduce)) ++ journalLayer
+  private val dependencies = (journalLayer >>> EventSource.makeLayer(reduce)) ++ journalLayer
 
 }
