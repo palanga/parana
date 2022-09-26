@@ -34,6 +34,9 @@ lazy val root =
     .settings(publish / skip := true)
     .aggregate(
       core,
+      core_local,
+      core_remote,
+      journal,
       journal_cassandra,
       journal_cassandra_json,
       examples,
@@ -44,17 +47,63 @@ lazy val core =
     .settings(
       name           := "parana",
       description    := "An event sourcing library on top of ZIO",
+      publish / skip := true,
+      Test / fork    := true,
+      run / fork     := true,
+      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")), // TODO remove
+      libraryDependencies ++= Seq(
+        "dev.zio" %% "zio"          % ZIO_VERSION,
+        "dev.zio" %% "zio-streams"  % ZIO_VERSION,
+        "dev.zio" %% "zio-test"     % ZIO_VERSION % "test", // TODO remove
+        "dev.zio" %% "zio-test-sbt" % ZIO_VERSION % "test", // TODO remove
+      ),
+      commonSettings,
+    )
+
+lazy val core_local =
+  (project in file("core") / "local")
+    .settings(
+      name           := "parana-local",
+      description    := "An event sourcing library on top of ZIO",
       Test / fork    := true,
       run / fork     := true,
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
       libraryDependencies ++= Seq(
-        "dev.zio" %% "zio"          % ZIO_VERSION,
-        "dev.zio" %% "zio-streams"  % ZIO_VERSION,
         "dev.zio" %% "zio-test"     % ZIO_VERSION % "test",
         "dev.zio" %% "zio-test-sbt" % ZIO_VERSION % "test",
       ),
       commonSettings,
-    )
+    ).dependsOn(core)
+
+lazy val core_remote =
+  (project in file("core") / "remote")
+    .settings(
+      name           := "parana-remote",
+      description    := "An event sourcing library on top of ZIO",
+      Test / fork    := true,
+      run / fork     := true,
+      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
+      libraryDependencies ++= Seq(
+        "dev.zio" %% "zio-test"     % ZIO_VERSION % "test",
+        "dev.zio" %% "zio-test-sbt" % ZIO_VERSION % "test",
+      ),
+      commonSettings,
+    ).dependsOn(core)
+
+lazy val journal =
+  (project in file("journal"))
+    .settings(
+      name           := "parana-journal",
+      description    := "An event sourcing library on top of ZIO",
+      Test / fork    := true,
+      run / fork     := true,
+      testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
+      libraryDependencies ++= Seq(
+        "dev.zio" %% "zio-test"     % ZIO_VERSION % "test",
+        "dev.zio" %% "zio-test-sbt" % ZIO_VERSION % "test",
+      ),
+      commonSettings,
+    ).dependsOn(core)
 
 lazy val journal_cassandra =
   (project in file("journal/cassandra"))
@@ -68,7 +117,7 @@ lazy val journal_cassandra =
       ),
       commonSettings,
     )
-    .dependsOn(core)
+    .dependsOn(journal)
 
 lazy val journal_cassandra_json =
   (project in file("journal/cassandra/json"))
@@ -105,8 +154,7 @@ lazy val examples =
       commonSettings,
     )
     .dependsOn(
-      core,
-      journal_cassandra_json,
+      core_local,
     )
 
 val commonSettings = Def.settings(
