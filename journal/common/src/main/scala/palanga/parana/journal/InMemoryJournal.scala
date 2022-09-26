@@ -1,9 +1,9 @@
 package palanga.parana.journal
 
 import palanga.parana.eventsource.*
+import zio.*
 import zio.stm.*
 import zio.stream.*
-import zio.*
 
 object InMemoryJournal {
   def make[Ev]: ZIO[Any, Nothing, Journal[Ev]] =

@@ -73,7 +73,8 @@ lazy val core_local =
         "dev.zio" %% "zio-test-sbt" % ZIO_VERSION % "test",
       ),
       commonSettings,
-    ).dependsOn(core)
+    )
+    .dependsOn(core)
 
 lazy val core_remote =
   (project in file("core") / "remote")
@@ -88,7 +89,8 @@ lazy val core_remote =
         "dev.zio" %% "zio-test-sbt" % ZIO_VERSION % "test",
       ),
       commonSettings,
-    ).dependsOn(core)
+    )
+    .dependsOn(core)
 
 lazy val journal =
   (project in file("journal") / "common")
@@ -103,7 +105,8 @@ lazy val journal =
         "dev.zio" %% "zio-test-sbt" % ZIO_VERSION % "test",
       ),
       commonSettings,
-    ).dependsOn(core)
+    )
+    .dependsOn(core)
 
 lazy val journal_cassandra =
   (project in file("journal/cassandra"))
@@ -148,7 +151,7 @@ lazy val examples =
       run / fork     := true,
       testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework")),
       libraryDependencies ++= Seq(
-        "dev.zio" %% "zio-test" % ZIO_VERSION,
+        "dev.zio" %% "zio-test"     % ZIO_VERSION,
         "dev.zio" %% "zio-test-sbt" % ZIO_VERSION,
       ),
       commonSettings,
