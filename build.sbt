@@ -43,9 +43,9 @@ lazy val root =
     )
 
 lazy val core =
-  (project in file("core"))
+  (project in file("core") / "common")
     .settings(
-      name           := "parana",
+      name           := "parana-core-common",
       description    := "An event sourcing library on top of ZIO",
       publish / skip := true,
       Test / fork    := true,
@@ -63,7 +63,7 @@ lazy val core =
 lazy val core_local =
   (project in file("core") / "local")
     .settings(
-      name           := "parana-local",
+      name           := "parana-core-local",
       description    := "An event sourcing library on top of ZIO",
       Test / fork    := true,
       run / fork     := true,
@@ -78,7 +78,7 @@ lazy val core_local =
 lazy val core_remote =
   (project in file("core") / "remote")
     .settings(
-      name           := "parana-remote",
+      name           := "parana-core-remote",
       description    := "An event sourcing library on top of ZIO",
       Test / fork    := true,
       run / fork     := true,
@@ -91,9 +91,9 @@ lazy val core_remote =
     ).dependsOn(core)
 
 lazy val journal =
-  (project in file("journal"))
+  (project in file("journal") / "common")
     .settings(
-      name           := "parana-journal",
+      name           := "parana-journal-common",
       description    := "An event sourcing library on top of ZIO",
       Test / fork    := true,
       run / fork     := true,
@@ -153,9 +153,7 @@ lazy val examples =
       ),
       commonSettings,
     )
-    .dependsOn(
-      core_local,
-    )
+    .dependsOn(core_local)
 
 val commonSettings = Def.settings(
   scalaVersion       := MAIN_SCALA,
