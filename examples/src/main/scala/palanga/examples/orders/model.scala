@@ -2,28 +2,34 @@ package palanga.examples.orders
 
 object model:
 
-  case class Order(items: List[(Item, Amount)], status: Status):
-    def addItems(items: List[Item]): Either[Error, Order]   = Right(this.copy(List(items.head -> items.size))) // TODO
-    def removeItems(item: List[Item]): Either[Error, Order] = ???
-    def total: Price                                        = items.map((item, amount) => item.price * amount).sum
+  case class Order(items: List[LineItem], status: Status):
+    def addItems(items: List[LineItem]): Either[Error, Order]   = Right(this.copy(items = items ++ this.items))
+    def removeItems(item: List[LineItem]): Either[Error, Order] = ???
+    def total: Price                                            = items.map(_.total).sum
 
     def pay(amount: Price): Either[Error, Order] =
-      val newStatus = status match
-        case Status.Paid | Status.Done => Left(Error.IllegalStatusTransition)
-        case Status.Opened             => if amount == total then Right(Status.Paid) else Left(Error.InsufficientFunds)
-        case Status.Delivered          => if amount == total then Right(Status.Done) else Left(Error.InsufficientFunds)
-
-      newStatus.map(newStatus => this.copy(status = newStatus))
+      for
+        _ <- validate(canPay)(Error.IllegalStatusTransition)
+        _ <- validate(amount >= total)(Error.InsufficientFunds)
+      yield copy(status = Status.Paid)
 
     def deliver(to: String): Either[Error, Order] = ???
 
     def close: Either[Error, Order] = ???
 
-  case class Item(name: String, price: Price)
+    private def validate(condition: Boolean)(e: Error) = if condition then Right(()) else Left(e)
+
+    private def canPay: Boolean = this.status match
+      case Status.Opened | Status.Delivered => true
+      case Status.Paid | Status.Done        => false
+
+  case class LineItem(name: String, unitPrice: Price, amount: Amount):
+    def total: Price = unitPrice * amount
 
   enum Status:
     case Opened, Paid, Delivered, Done
 
+  // TODO error name when logging
   enum Error extends Throwable:
     case IllegalState, InsufficientFunds, IllegalStatusTransition
 

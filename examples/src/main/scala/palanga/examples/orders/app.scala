@@ -15,8 +15,8 @@ object app extends ZIOAppDefault:
   private val app =
     for
       orders <- ZIO.service[EventSource[Order, Command, Event]]
-      _      <- orders.empty.ask(Command.AddItems(Item("hueso", 10) :: Nil)).debug
-      _      <- orders.of(SOME_UUID).get.map(_.total).debug
-      _      <- orders.of(SOME_UUID).ask(Command.Pay(10)).debug
+      _      <- orders.empty.ask(Command.AddItems(LineItem("hueso", 10, 2) :: Nil)).debug
+      _      <- orders.of(SOME_UUID).get.debug
+      _      <- orders.of(SOME_UUID).ask(Command.Pay(20)).debug
       _      <- orders.of(SOME_UUID).get.debug
     yield ()

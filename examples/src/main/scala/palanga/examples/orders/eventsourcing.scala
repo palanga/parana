@@ -15,7 +15,6 @@ object eventsourcing:
     ZIO
       .fromEither(commandToMethod(cmd)(order))
       .map(_ -> (commandToEvent(cmd) :: Nil))
-      .mapError(e => new Exception(e.toString, e))
 
   private def commandToEvent(cmd: Command): Event = cmd match
     case Command.AddItems(items)    => Event.ItemsAdded(items)
