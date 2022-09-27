@@ -7,5 +7,5 @@ object events:
     case ItemsAdded(items: List[LineItem])
     case ItemsRemoved(items: List[LineItem])
     case Paid(amount: Price)
-    case Delivered(to: String)
+    case Shipped(to: Address)
     case Closed

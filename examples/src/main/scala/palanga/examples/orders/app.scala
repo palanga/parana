@@ -19,4 +19,5 @@ object app extends ZIOAppDefault:
       _      <- orders.of(SOME_UUID).get.debug
       _      <- orders.of(SOME_UUID).ask(Command.Pay(20)).debug
       _      <- orders.of(SOME_UUID).get.debug
+      _      <- orders.of(SOME_UUID).ask(Command.Ship("La Casa de Nube")).debug
     yield ()

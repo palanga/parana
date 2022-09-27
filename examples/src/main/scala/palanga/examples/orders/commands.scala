@@ -7,5 +7,5 @@ object commands:
     case AddItems(items: List[LineItem])
     case RemoveItems(items: List[LineItem])
     case Pay(amount: Price)
-    case Deliver(to: String)
+    case Ship(to: Address)
     case Close
