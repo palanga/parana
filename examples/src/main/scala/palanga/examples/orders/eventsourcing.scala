@@ -20,7 +20,7 @@ object eventsourcing:
     case Command.RemoveItems(items) => Event.ItemsRemoved(items)
     case Command.Pay(amount)        => Event.Paid(amount)
     case Command.Ship(to)           => Event.Shipped(to)
-    case Command.Close              => Event.Closed
+    case Command.Cancel             => Event.Cancelled
 
   private def commandToMethod(cmd: Command): Order => Either[Error, Order] = order =>
     cmd match
@@ -28,4 +28,4 @@ object eventsourcing:
       case Command.RemoveItems(items) => order.removeItems(items)
       case Command.Pay(amount)        => order.pay(amount)
       case Command.Ship(to)           => order.ship(to)
-      case Command.Close              => order.close
+      case Command.Cancel             => order.cancel

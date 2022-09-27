@@ -8,4 +8,4 @@ object events:
     case ItemsRemoved(items: List[LineItem])
     case Paid(amount: Price)
     case Shipped(to: Address)
-    case Closed
+    case Cancelled

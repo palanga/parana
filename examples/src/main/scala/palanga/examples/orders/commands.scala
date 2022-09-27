@@ -8,4 +8,4 @@ object commands:
     case RemoveItems(items: List[LineItem])
     case Pay(amount: Price)
     case Ship(to: Address)
-    case Close
+    case Cancel

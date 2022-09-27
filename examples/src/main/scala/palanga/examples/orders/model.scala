@@ -26,17 +26,18 @@ object model:
       for _ <- validate(canTransitionTo(Status.Shipped(to)))(Error.IllegalStatusTransition)
       yield copy(status = Status.Shipped(to))
 
-    def close: Either[Error, Order] = Right(copy(status = Status.Closed))
+    def cancel: Either[Error, Order] = Right(copy(status = Status.Cancelled))
 
-    private def isOpen = status match
-      case Status.Opened => true
-      case _             => false
+    private def isOpen =
+      status match
+        case Status.Opened => true
+        case _             => false
 
     private def validate(condition: Boolean)(e: Error) = if condition then Right(()) else Left(e)
 
     private def canTransitionTo(status: Status) =
       status match
-        case Status.Closed                                   => true
+        case Status.Cancelled                                => true
         case Status.Opened | Status.Paid | Status.Shipped(_) => status.ordinal == this.status.ordinal + 1
 
   case class LineItem(name: String, unitPrice: Price, amount: Amount):
@@ -46,7 +47,7 @@ object model:
     case Opened
     case Paid
     case Shipped(to: Address)
-    case Closed
+    case Cancelled
 
   // TODO error name when logging
   enum Error extends Throwable:
