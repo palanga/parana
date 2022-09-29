@@ -11,9 +11,9 @@ trait EventSource[A, Cmd, Ev]:
 
 trait EventSourcedEntity[A, Cmd, Ev]:
   def get: Task[A]
-  def ask(cmd: Cmd): Task[(A, List[Ev])]
+  def ask(command: Cmd): Task[(A, List[Ev])]
 
 trait EmptyEventSourcedEntity[A, Cmd, Ev]:
-  def ask(cmd: Cmd): Task[(A, List[Ev])] // TODO: return new entity id
+  def ask(command: Cmd): Task[((EntityId, A), List[Ev])]
 
-type EntityId = UUID // TODO use version 4, random UUID
+type EntityId = UUID // TODO use version 4, random UUID opaque type

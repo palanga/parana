@@ -1,59 +1,52 @@
 package palanga.examples.groups
 
-import palanga.parana.eventsource.local.SOME_UUID // TODO
+import model.*
+import commands.*
+import events.*
+import eventsourcing.*
+import palanga.parana.eventsource.*
+import palanga.parana.eventsource.local.*
 import zio.*
 
 object app extends ZIOAppDefault:
-  import model.*
-  import commands.*
-  import events.*
-  import eventsourcing.*
-  import model.*
-  import palanga.parana.eventsource.*
 
-  override def run = app.provide(groups)
+  override def run = app.provide(groupsLocal)
 
   private val app =
     for
-      groups <- ZIO.service[EventSource[Group, Command, Event]]
-      _ <- groups.empty.ask(Command.Join(Person("Palan"))).debug
-      _ <- groups.of(SOME_UUID).ask(Command.Join(Person("Nube"))).debug
-      _ <- groups.of(SOME_UUID).ask(Command.Leave(Person("Palan"))).debug
-      _ <- groups.of(SOME_UUID).ask(Command.Join(Person("Fruchi"))).debug
-      _ <- groups.of(SOME_UUID).get.debug
+      groups       <- ZIO.service[EventSource[Group, Command, Event]]
+      ((id, _), _) <- groups.empty.ask(Command.Join(User("Palan"))).debug
+      _            <- groups.of(id).ask(Command.Join(User("Nube"))).debug
+      _            <- groups.of(id).ask(Command.Leave(User("Palan"))).debug
+      _            <- groups.of(id).ask(Command.Join(User("Fruchi"))).debug
+      _            <- groups.of(id).get.debug
     yield ()
 
 object model:
 
-  case class Group(members: Set[Person]):
-    def join(person: Person): Group  = copy(members = members + person)
-    def leave(person: Person): Group = copy(members = members - person)
+  case class Group(members: Set[User]):
+    def join(user: User): Group  = copy(members = members + user)
+    def leave(user: User): Group = copy(members = members - user)
 
-  case class Person(name: String)
+  case class User(name: String)
 
 object commands:
-  import model.*
   enum Command:
-    case Join(person: Person)
-    case Leave(person: Person)
+    case Join(user: User)
+    case Leave(user: User)
 
 object events:
-  import model.*
   enum Event:
-    case Joined(person: Person)
-    case Left(person: Person)
+    case Joined(user: User)
+    case Left(user: User)
 
 object eventsourcing:
-  import model.*
-  import commands.*
-  import events.*
-  import palanga.parana.eventsource.local.*
 
-  val groups: ZLayer[Any, Nothing, EventSourceLocal[Group, Command, Event]] =
+  val groupsLocal: ZLayer[Any, Nothing, EventSourceLocal[Group, Command, Event]] =
     EventSourceLocal.makeLayer[Group, Command, Event](
-      { case Command.Join(person) => Group(Set(person)) -> List(Event.Joined(person)) },
+      { case Command.Join(user) => Group(Set(user)) -> List(Event.Joined(user)) },
       (group, command) =>
         command match
-          case Command.Join(person)  => ZIO.succeed(group.join(person) -> List(Event.Joined(person)))
-          case Command.Leave(person) => ZIO.succeed(group.leave(person) -> List(Event.Left(person))),
+          case Command.Join(user)  => ZIO.succeed(group.join(user) -> List(Event.Joined(user)))
+          case Command.Leave(user) => ZIO.succeed(group.leave(user) -> List(Event.Left(user))),
     )
