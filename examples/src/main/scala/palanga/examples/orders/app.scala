@@ -10,7 +10,7 @@ import zio.*
 
 object app extends ZIOAppDefault:
 
-  override def run = app.provide(EventSourceLocal.makeLayer(initCommand, applyCommand))
+  override def run = app.provide(EventSourceInMemory.makeLayer(initCommand, applyCommand))
 
   private val app =
     for

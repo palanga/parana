@@ -5,15 +5,19 @@ import zio.*
 import zio.stm.*
 import zio.stream.*
 
-object InMemoryJournal {
-  def make[Ev]: ZIO[Any, Nothing, Journal[Ev]] =
+object InMemoryJournal:
+
+  def makeLayer[Ev](using Tag[Ev]): ZLayer[Any, Nothing, Journal[Ev]] =
+    ZLayer.fromZIO(make[Ev])
+
+  private def make[Ev]: ZIO[Any, Nothing, Journal[Ev]] =
     TMap
       .empty[EntityId, Chunk[Ev]]
       .commit
-      .map(new InMemoryJournal[Ev](_))
-}
+      .map(InMemoryJournal[Ev](_))
 
-private[parana] class InMemoryJournal[Ev](private val eventsTMap: TMap[EntityId, Chunk[Ev]]) extends Journal[Ev] {
+
+private[parana] class InMemoryJournal[Ev](private val eventsTMap: TMap[EntityId, Chunk[Ev]]) extends Journal[Ev]:
 
   override def read(id: EntityId): ZStream[Any, Nothing, Ev] =
     ZStream.fromIterableZIO(eventsTMap.getOrElse(id, Chunk.empty).commit)
@@ -23,5 +27,3 @@ private[parana] class InMemoryJournal[Ev](private val eventsTMap: TMap[EntityId,
 
   override def allIds: ZStream[Any, Nothing, EntityId] =
     ZStream.fromIterableZIO(eventsTMap.keys.commit)
-
-}

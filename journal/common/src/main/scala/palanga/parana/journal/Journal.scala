@@ -25,9 +25,6 @@ trait Journal[Ev] { self =>
 }
 
 object Journal:
-
-  def inMemory[Ev](implicit etag: Tag[Ev]): ZIO[Any, Nothing, Journal[Ev]] = InMemoryJournal.make
-
   def decorator[Ev](implicit etag: Tag[Ev]): JournalDecorator[Ev] = JournalDecorator()
 
 case class JournalDecorator[Ev]() {

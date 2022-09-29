@@ -16,6 +16,7 @@ def live[Ev](implicit codec: Codec[Ev], etag: Tag[Ev]): ZLayer[ZCqlSession, Cass
 def test[Ev](implicit codec: Codec[Ev], etag: Tag[Ev]): ZLayer[ZCqlSession, CassandraException, Journal[Ev]] =
   CassandraJournal.layer[Ev](shouldCreateTable = true)
 
+// TODO write and read in bulk
 object CassandraJournal {
 
   def make[Ev](
