@@ -11,7 +11,7 @@ import zio.*
 
 object app extends ZIOAppDefault:
 
-  override def run = app.provide(groupsLocal, InMemoryJournal.makeLayer[Event])
+  override def run = app.provide(groupsLocal, inMemoryJournal)
 
   private val app =
     for
@@ -57,3 +57,5 @@ object eventsourcing:
           case Event.Joined(user) => Right(group.join(user))
           case Event.Left(user)   => Right(group.leave(user)),
     )
+
+  val inMemoryJournal = InMemoryJournal.makeLayer[Event]
