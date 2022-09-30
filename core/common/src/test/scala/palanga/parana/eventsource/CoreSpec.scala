@@ -1,23 +1,92 @@
-//package palanga.parana
-//
-//import palanga.parana.events.{ reduce, PainterEvent }
-//import zio.*
-//import zio.test.*
-//
-//object CoreSpec extends ZIOSpecDefault {
-//
-//  override def spec =
-//    testSuite.provideCustomLayerShared(dependencies) @@ TestAspect.parallelN(4)
-//
-//  private val testSuite =
-//    suite("río paraná suite with in memory journal")(
-//      EventSourceSpec.testSuite,
-//      JournalSpec.testSuite,
-//    )
-//
-//  private val dependencies =
-//    (ZLayer.apply(Journal.inMemory[PainterEvent]) >>> EventSource.makeLayer(reduce)) ++ ZLayer.apply(
-//      Journal.inMemory[PainterEvent]
-//    )
-//
-//}
+package palanga.parana.eventsource
+
+import CoreSpec.model.*
+import CoreSpec.commands.*
+import CoreSpec.events.*
+import CoreSpec.eventsourcing.*
+import palanga.parana.eventsource.*
+import zio.ZIO
+import zio.test.*
+
+object CoreSpec:
+
+  private val groupsService = ZIO.service[EventSource[Group, Command, Event]]
+
+  val testSuite: Spec[EventSource[Group, Command, Event], Throwable] =
+    suite("an event source")(
+      test("can create a new entity") {
+        for
+          groups               <- groupsService
+          ((_, group), events) <- groups.empty.ask(Command.Join(User("Nube")))
+        yield assertTrue {
+          group == Group(Set(User("Nube")))
+          && events == List(Event.Joined(User("Nube")))
+        }
+      },
+      test("can get a created entity") {
+        for
+          groups       <- groupsService
+          ((id, _), _) <- groups.empty.ask(Command.Join(User("Nube")))
+          group        <- groups.of(id).get
+        yield assertTrue {
+          group == Group(Set(User("Nube")))
+        }
+      },
+      test("can ask to a created entity") {
+        for
+          groups          <- groupsService
+          ((id, _), _)    <- groups.empty.ask(Command.Join(User("Nube")))
+          (group, events) <- groups.of(id).ask(Command.Leave(User("Nube")))
+        yield assertTrue {
+          group == Group(Set())
+          && events == List(Event.Left(User("Nube")))
+        }
+      },
+      test("can create to different new entities") {
+        for
+          groups        <- groupsService
+          ((id1, _), _) <- groups.empty.ask(Command.Join(User("Nube")))
+          ((id2, _), _) <- groups.empty.ask(Command.Join(User("Nube")))
+        yield assertTrue {
+          id1 != id2
+        }
+      },
+    )
+
+  object model:
+
+    case class Group(members: Set[User]):
+      def join(user: User): Group  = copy(members = members + user)
+      def leave(user: User): Group = copy(members = members - user)
+
+    case class User(name: String)
+
+  object commands:
+    enum Command:
+      case Join(user: User)
+      case Leave(user: User)
+
+  object events:
+    enum Event:
+      case Joined(user: User)
+      case Left(user: User)
+
+  object eventsourcing:
+
+    val initCommand: PartialFunction[Command, (Group, List[Event])] = { case Command.Join(user) =>
+      Group(Set(user)) -> List(Event.Joined(user))
+    }
+
+    def applyCommand(group: Group, command: Command): ZIO[Any, Nothing, (Group, List[Event])] =
+      command match
+        case Command.Join(user)  => ZIO.succeed(group.join(user) -> List(Event.Joined(user)))
+        case Command.Leave(user) => ZIO.succeed(group.leave(user) -> List(Event.Left(user)))
+
+    val initEvent: PartialFunction[Event, Group] = { case Event.Joined(user) =>
+      Group(Set(user))
+    }
+
+    def applyEvent(group: Group, event: Event): Right[Nothing, Group] =
+      event match
+        case Event.Joined(user) => Right(group.join(user))
+        case Event.Left(user)   => Right(group.leave(user))
