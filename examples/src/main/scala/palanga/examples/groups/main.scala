@@ -16,11 +16,11 @@ object app extends ZIOAppDefault:
   private val app =
     for
       groups       <- ZIO.service[EventSource[Group, Command, Event]]
-      ((id, _), _) <- groups.empty.ask(Command.Join(User("Palan"))).debug
-      _            <- groups.of(id).ask(Command.Join(User("Nube"))).debug
-      _            <- groups.of(id).ask(Command.Leave(User("Palan"))).debug
-      _            <- groups.of(id).ask(Command.Join(User("Fruchi"))).debug
-      _            <- groups.of(id).get.debug
+      ((id, _), _) <- groups.empty.ask(Command.Join(User("Palan")))
+      _            <- groups.of(id).ask(Command.Join(User("Nube")))
+      _            <- groups.of(id).ask(Command.Leave(User("Palan")))
+      _            <- groups.of(id).ask(Command.Join(User("Fruchi")))
+      _            <- groups.of(id).get
     yield ()
 
 object model:
@@ -44,18 +44,20 @@ object events:
 object eventsourcing:
 
   val groupsLocal =
-    EventSourceLocal.makeLayer[Group, Command, Event](
-      { case Command.Join(user) => Group(Set(user)) -> List(Event.Joined(user)) },
-      (group, command) =>
-        command match
-          case Command.Join(user)  => ZIO.succeed(group.join(user) -> List(Event.Joined(user)))
-          case Command.Leave(user) => ZIO.succeed(group.leave(user) -> List(Event.Left(user)))
-      ,
-      { case Event.Joined(user) => Group(Set(user)) },
-      (group, event) =>
-        event match
-          case Event.Joined(user) => Right(group.join(user))
-          case Event.Left(user)   => Right(group.leave(user)),
-    )
+    EventSourceLocal
+      .of[Group, Command, Event](
+        { case Command.Join(user) => Group(Set(user)) -> List(Event.Joined(user)) },
+        (group, command) =>
+          command match
+            case Command.Join(user)  => ZIO.succeed(group.join(user) -> List(Event.Joined(user)))
+            case Command.Leave(user) => ZIO.succeed(group.leave(user) -> List(Event.Left(user)))
+        ,
+        { case Event.Joined(user) => Group(Set(user)) },
+        (group, event) =>
+          event match
+            case Event.Joined(user) => Right(group.join(user))
+            case Event.Left(user)   => Right(group.leave(user)),
+      )
+      .makeLayer
 
   val inMemoryJournal = InMemoryJournal.makeLayer[Event]

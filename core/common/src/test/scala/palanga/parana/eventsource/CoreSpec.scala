@@ -51,6 +51,21 @@ object CoreSpec:
           id1 != id2
         }
       },
+      test("can ask to two different entities") {
+        for
+          groups            <- groupsService
+          ((id1, _), _)     <- groups.empty.ask(Command.Join(User("Nube")))
+          ((id2, _), _)     <- groups.empty.ask(Command.Join(User("Nube")))
+          (group1, events1) <- groups.of(id1).ask(Command.Join(User("Fruchi")))
+          (group2, events2) <- groups.of(id2).ask(Command.Join(User("Palan")))
+        yield assertTrue {
+          id1 != id2
+          && group1 == Group(Set(User("Nube"), User("Fruchi")))
+          && group2 == Group(Set(User("Nube"), User("Palan")))
+          && events1 == List(Event.Joined(User("Fruchi")))
+          && events2 == List(Event.Joined(User("Palan")))
+        }
+      },
     )
 
   object model:

@@ -8,7 +8,8 @@ import zio.test.*
 
 object EventSourceLocalTest extends ZIOSpecDefault:
 
-  override def spec: Spec[Any, Any] = testSuite.provide(groupsLocal, journalInMemory)
+  override def spec: Spec[Any, Any] =
+    suite("locally with an in memory journal")(testSuite).provide(groupsLocal, journalInMemory)
 
-  private val groupsLocal     = EventSourceLocal.makeLayer(initCommand, applyCommand, initEvent, applyEvent)
+  private val groupsLocal     = EventSourceLocal.of(initCommand, applyCommand, initEvent, applyEvent).makeLayer
   private val journalInMemory = InMemoryJournal.makeLayer[Event]

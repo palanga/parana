@@ -10,7 +10,7 @@ object InMemoryJournal:
   def makeLayer[Ev](using Tag[Ev]): ZLayer[Any, Nothing, Journal[Ev]] =
     ZLayer.fromZIO(make[Ev])
 
-  private def make[Ev]: ZIO[Any, Nothing, Journal[Ev]] =
+  def make[Ev]: ZIO[Any, Nothing, Journal[Ev]] =
     TMap
       .empty[EntityId, Chunk[Ev]]
       .commit

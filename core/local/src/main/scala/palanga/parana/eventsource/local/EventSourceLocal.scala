@@ -1,19 +1,20 @@
 package palanga.parana.eventsource.local
 
 import palanga.parana.eventsource.*
+import palanga.parana.eventsource.local.internal.*
 import palanga.parana.journal.*
 import zio.*
 import zio.stream.*
 
 object EventSourceLocal:
 
-  def makeLayer[A, Cmd, Ev](
+  def of[A, Cmd, Ev](
     initCommand: PartialFunction[Cmd, (A, List[Ev])],
     applyCommand: (A, Cmd) => Task[(A, List[Ev])],
     initEvent: PartialFunction[Ev, A],
     applyEvent: (A, Ev) => Either[Throwable, A],
-  )(using Tag[A], Tag[Cmd], Tag[Ev]): ZLayer[Journal[Ev], Nothing, EventSource[A, Cmd, Ev]] =
-    ZLayer.scoped(ZIO.service[Journal[Ev]].map(EventSourceLocal(initCommand, applyCommand, initEvent, applyEvent, _)))
+  ): EventSourceLocalBuilder[Any, A, Cmd, Ev] =
+    EventSourceLocalBuilder(initCommand, applyCommand, initEvent, applyEvent)
 
 final class EventSourceLocal[A, Cmd, Ev](
   initCommand: PartialFunction[Cmd, (A, List[Ev])],
@@ -56,7 +57,7 @@ final class EventSourcedEntityLocal[A, Cmd, Ev](
   override def get: Task[A] =
     val events = journal.read(id)
     for
-      head <- events.take(1).runHead.someOrFailException // take(1) first because runHead runs it until completion
+      head <- events.take(1).runHead.someOrFailException                                // take(1) first because runHead runs it until completion
       tail  = events.drop(1)
       a    <- tail.runFoldZIO(init(head))((a, ev) => ZIO.fromEither(applyEvent(a, ev))) // TODO optimize without ZIO
     yield a
