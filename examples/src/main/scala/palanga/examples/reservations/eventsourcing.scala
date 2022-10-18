@@ -14,8 +14,6 @@ import java.time.LocalDate
 
 object eventsourcing:
 
-  private val AMOUNT_OF_TABLES = 2
-
   final class EventSourcedReservationsManager(
     reservations: EventSource[Reservation, Command, Event],
     index: ReservationsIndex,
@@ -27,13 +25,6 @@ object eventsourcing:
     override def reservationsByDate(date: LocalDate): Task[Map[EntityId, Reservation]] =
       index.searchByDate(date, Shift.EightToTen).zipPar(index.searchByDate(date, Shift.TenToTwelve)).map(_ ++ _)
 
-    override def makeReservation(onBehalfOf: String, date: LocalDate, shift: Shift): Task[(EntityId, Reservation)] =
-      reservations.empty
-        .ask(Command.MakeReservation(onBehalfOf, date, shift))
-        .whenZIO(index.countOccupiedByDate(date, shift).map(_ < AMOUNT_OF_TABLES))
-        .someOrFail(Exception("All tables already reserved."))
-        .map { case ((id, reservation), _) => id -> reservation }
-
     override def takeReservation(reservationId: EntityId): Task[Reservation] =
       reservations.of(reservationId).ask(Command.Take).map(_._1)
 
@@ -42,6 +33,14 @@ object eventsourcing:
 
     override def cancelReservation(reservationId: EntityId): Task[Reservation] =
       reservations.of(reservationId).ask(Command.Cancel("No reason")).map(_._1)
+
+    override private[reservations] def saveReservation(reservation: Reservation): Task[(EntityId, Reservation)] =
+      reservations.empty.ask(Command.MakeReservation(reservation)).map(_._1)
+
+    override private[reservations] def countOccupiedTables(date: LocalDate, shift: Shift): Task[Int] =
+      index.countOccupiedByDate(date, shift)
+
+    override private[reservations] val amountOfTables: Int = 2
 
   object EventSourcedReservationsManager:
 
@@ -54,8 +53,8 @@ object eventsourcing:
       yield EventSourcedReservationsManager(reservations, index)
 
   private val initCommand: PartialFunction[Command, (Reservation, List[Event])] = {
-    case Command.MakeReservation(onBehalfOf, date, shift) =>
-      Reservation(onBehalfOf, date, shift) -> List(Event.ReservationMade(onBehalfOf, date, shift))
+    case Command.MakeReservation(reservation) =>
+      reservation -> List(Event.ReservationMade(reservation.onBehalfOf, reservation.date, reservation.shift))
   }
 
   private val applyCommand: (Reservation, Command) => Task[(Reservation, List[Event])] = (reservation, command) =>

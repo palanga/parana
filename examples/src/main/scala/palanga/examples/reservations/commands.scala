@@ -6,7 +6,7 @@ import java.time.LocalDate
 
 object commands:
   enum Command:
-    case MakeReservation(onBehalfOf: String, date: LocalDate, shift: Shift)
+    case MakeReservation(reservation: Reservation)
     case Take
     case Conclude
     case Cancel(reason: String)

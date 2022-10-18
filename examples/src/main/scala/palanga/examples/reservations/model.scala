@@ -19,7 +19,14 @@ object model:
     def takeReservation(reservationId: EntityId): Task[Reservation]
     def concludeReservation(reservationId: EntityId): Task[Reservation]
     def cancelReservation(reservationId: EntityId): Task[Reservation]
-    def makeReservation(onBehalfOf: String, date: LocalDate, shift: Shift): Task[(EntityId, Reservation)]
+    def makeReservation(onBehalfOf: String, date: LocalDate, shift: Shift): Task[(EntityId, Reservation)] =
+      saveReservation(Reservation(onBehalfOf, date, shift))
+        .whenZIO(countOccupiedTables(date, shift).map(_ < amountOfTables))
+        .someOrFail(Exception("All tables already reserved."))
+
+    private[reservations] def saveReservation(reservation: Reservation): Task[(EntityId, Reservation)]
+    private[reservations] def countOccupiedTables(date: LocalDate, shift: Shift): Task[Int]
+    private[reservations] val amountOfTables: Int
 
   case class Reservation(onBehalfOf: String, date: LocalDate, shift: Shift, status: Status = Status.Open):
 
@@ -49,15 +56,9 @@ object model:
   enum Status:
     case Open, Taken, Concluded
     case Cancelled(reason: String)
-    
+
   trait ReservationsIndex:
     def insert(id: EntityId, event: Event): Task[Unit]
     def searchByName(onBehalfOf: String): Task[Map[EntityId, Reservation]]
     def searchByDate(date: LocalDate, shift: Shift): Task[Map[EntityId, Reservation]]
     def countOccupiedByDate(date: LocalDate, shift: Shift): Task[Int]
-
-
-
-
-
-
