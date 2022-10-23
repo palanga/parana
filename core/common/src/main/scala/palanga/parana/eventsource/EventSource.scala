@@ -32,13 +32,13 @@ object Ids2:
 object prueba3:
   import Ids2.*
 
-  val stringId = EntityId.random[String]
+  val stringId      = EntityId.random[String]
   val stringEventId = EventId.random[String]
-  val intId = EntityId.random[Int]
+  val intId         = EntityId.random[Int]
 
-  val string: IdValue[String, Ids2.EntityId] = IdValue("palan", stringId)
+  val string: IdValue[String, Ids2.EntityId]     = IdValue("palan", stringId)
   val stringEvent: IdValue[String, Ids2.EventId] = IdValue("palan", stringEventId)
-  val int = IdValue(7, intId)
+  val int                                        = IdValue(7, intId)
   //  val dontCompile = IdValue(intId, "palan")
 
   val a = IdValue("nube", EntityId.random)
@@ -63,9 +63,9 @@ object prueba2 extends App:
   val stringEventId = EventId.random[String]
   val intId         = EntityId.random[Int]
 
-  val string: IdValue[Ids.EntityId, String] = IdValue(stringId, "palan")
+  val string: IdValue[Ids.EntityId, String]     = IdValue(stringId, "palan")
   val stringEvent: IdValue[Ids.EventId, String] = IdValue(stringEventId, "palan")
-  val int                                   = IdValue(intId, 7)
+  val int                                       = IdValue(intId, 7)
 //  val dontCompile = IdValue(intId, "palan")
 
   val a = IdValue(EntityId.random, "nube")

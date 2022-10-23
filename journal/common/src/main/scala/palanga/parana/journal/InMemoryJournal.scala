@@ -16,7 +16,6 @@ object InMemoryJournal:
       .commit
       .map(InMemoryJournal[Ev](_))
 
-
 private[parana] class InMemoryJournal[Ev](private val eventsTMap: TMap[EntityId, Chunk[Ev]]) extends Journal[Ev]:
 
   override def read(id: EntityId): ZStream[Any, Nothing, Ev] =
