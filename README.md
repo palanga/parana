@@ -102,8 +102,9 @@ object eventsourcing:
       .makeLayer
 
   val inMemoryJournal = InMemoryJournal.makeLayer[Event]
-
 ```
+
+You can find more examples under `examples` folder.
 
 Contributing:
 -------------
