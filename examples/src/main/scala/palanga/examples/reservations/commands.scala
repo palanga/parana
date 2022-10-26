@@ -10,7 +10,3 @@ object commands:
     case Take
     case Conclude
     case Cancel(reason: String)
-
-
-
-
