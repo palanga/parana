@@ -4,11 +4,6 @@ paraná
 [![Release Artifacts][Badge-SonatypeReleases]][Link-SonatypeReleases]
 [![Snapshot Artifacts][Badge-SonatypeSnapshots]][Link-SonatypeSnapshots]
 
-[Link-SonatypeReleases]: https://s01.oss.sonatype.org/content/repositories/releases/io/github/palanga/parana-core-local_3/ "Sonatype Releases"
-[Badge-SonatypeReleases]: https://img.shields.io/nexus/r/https/s01.oss.sonatype.org/io.github.palanga/parana-core-local_3.svg "Sonatype Releases"
-[Link-SonatypeSnapshots]: https://s01.oss.sonatype.org/content/repositories/snapshots/io/github/palanga/parana-core-local_3/ "Sonatype Snapshots"
-[Badge-SonatypeSnapshots]: https://img.shields.io/nexus/s/https/s01.oss.sonatype.org/io.github.palanga/parana-core-local_3.svg "Sonatype Snapshots"
-
 An event sourcing library on top of ZIO
 ---------------------------------------
 
@@ -115,3 +110,10 @@ Contributing:
 -------------
 
 * To run tests: `sbt test`
+
+
+[Link-SonatypeReleases]: https://s01.oss.sonatype.org/content/repositories/releases/io/github/palanga/parana-core-local_3/ "Sonatype Releases"
+[Link-SonatypeSnapshots]: https://s01.oss.sonatype.org/content/repositories/snapshots/io/github/palanga/parana-core-local_3/ "Sonatype Snapshots"
+
+[Badge-SonatypeReleases]: https://img.shields.io/nexus/r/https/s01.oss.sonatype.org/io.github.palanga/parana-core-local_3.svg "Sonatype Releases"
+[Badge-SonatypeSnapshots]: https://img.shields.io/nexus/s/https/s01.oss.sonatype.org/io.github.palanga/parana-core-local_3.svg "Sonatype Snapshots"
