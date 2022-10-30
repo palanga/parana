@@ -1,4 +1,4 @@
-paraná
+Paraná
 ======
 
 [![Release Artifacts][Badge-SonatypeReleases]][Link-SonatypeReleases]
