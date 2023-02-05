@@ -1,48 +1,35 @@
 name: CI
 
 on:
-  pull_request:
+  push:
     branches:
       - main
+    tags: [ "*" ]
   workflow_dispatch:
-  workflow_call:
 
 jobs:
 
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Setup JDK
-        uses: actions/setup-java@v3
-        with:
-          distribution: zulu
-          java-version: 11
-          cache: sbt
-      - name: Check proper code formatting
-        run: sbt check
-
   build:
+    uses: ./.github/workflows/test-and-lint.yml
+
+  publish:
     runs-on: ubuntu-latest
+    needs: build
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: Setup JDK
         uses: actions/setup-java@v3
         with:
           distribution: zulu
           java-version: 11
           cache: sbt
-      - name: Compile and run tests
-        run: sbt test
-
-  ci:
-    runs-on: ubuntu-latest
-    needs:
-      - lint
-      - build
-    steps:
-      - name: Aggregate of lint and build
-        run: echo "CI passed"
-
+      - name: Publish release
+        run: sbt ci-release
+        env:
+          PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
+          PGP_SECRET: ${{ secrets.PGP_SECRET }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
