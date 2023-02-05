@@ -1,6 +1,7 @@
 Paraná
 ======
 
+[![CI][Badge-CI]][Link-CI]
 [![Release Artifacts][Badge-SonatypeReleases]][Link-SonatypeReleases]
 [![Snapshot Artifacts][Badge-SonatypeSnapshots]][Link-SonatypeSnapshots]
 
@@ -112,8 +113,10 @@ Contributing:
 * To run tests: `sbt test`
 
 
+[Link-CI]: https://github.com/palanga/parana/actions/workflows/ci.yml "CI"
 [Link-SonatypeReleases]: https://s01.oss.sonatype.org/content/repositories/releases/io/github/palanga/parana-core-local_3/ "Sonatype Releases"
 [Link-SonatypeSnapshots]: https://s01.oss.sonatype.org/content/repositories/snapshots/io/github/palanga/parana-core-local_3/ "Sonatype Snapshots"
 
+[Badge-CI]: https://github.com/palanga/parana/actions/workflows/ci.yml/badge.svg "CI"
 [Badge-SonatypeReleases]: https://img.shields.io/nexus/r/https/s01.oss.sonatype.org/io.github.palanga/parana-core-local_3.svg "Sonatype Releases"
 [Badge-SonatypeSnapshots]: https://img.shields.io/nexus/s/https/s01.oss.sonatype.org/io.github.palanga/parana-core-local_3.svg "Sonatype Snapshots"
