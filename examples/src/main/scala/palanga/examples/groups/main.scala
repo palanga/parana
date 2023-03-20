@@ -11,7 +11,7 @@ import zio.*
 
 object app extends ZIOAppDefault:
 
-  override def run = app.provide(groupsLocal, inMemoryJournal)
+  override def run = app.provide(groupsLocal, inMemoryJournal).debug
 
   private val app =
     for
@@ -20,8 +20,8 @@ object app extends ZIOAppDefault:
       _            <- groups.of(id).ask(Command.Join(User("Nube")))
       _            <- groups.of(id).ask(Command.Leave(User("Palan")))
       _            <- groups.of(id).ask(Command.Join(User("Fruchi")))
-      _            <- groups.of(id).get
-    yield ()
+      group        <- groups.of(id).get
+    yield group.members == Set(User("Nube"), User("Fruchi"))
 
 object model:
 
