@@ -1,6 +1,6 @@
 name := "parana"
 
-val MAIN_SCALA            = "3.2.2"
+val MAIN_SCALA            = "3.3.0"
 val ALL_SCALA             = Seq(MAIN_SCALA)
 val ZIO_CASSANDRA_VERSION = "0.10.0"
 val ZIO_JSON_VERSION      = "0.5.0"
