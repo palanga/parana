@@ -4,7 +4,7 @@ val MAIN_SCALA            = "3.3.1"
 val ALL_SCALA             = Seq(MAIN_SCALA)
 val ZIO_CASSANDRA_VERSION = "0.10.0"
 val ZIO_JSON_VERSION      = "0.6.0"
-val ZIO_VERSION           = "2.0.21"
+val ZIO_VERSION           = "2.0.22"
 
 inThisBuild(
   List(
